@@ -6,6 +6,9 @@ node_modules/
 .env.*
 !.env.example
 
+# Config local del proyecto (puede contener nombres internos)
+.vector-memory.json
+
 # Logs
 *.log
 logs/

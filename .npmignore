@@ -1,0 +1,29 @@
+# Archivos que NO se incluyen en el paquete npm
+# (todo lo que no este aqui y no este en .gitignore se incluye por defecto)
+
+# Desarrollo y CI
+.github/
+.vscode/
+.idea/
+
+# Assets (solo necesarios en el repo, no en el paquete)
+assets/
+
+# Scripts de ingesta batch (dependen del entorno del usuario)
+scripts/
+
+# Docs extendidos (el README principal si se incluye)
+docs/
+
+# Config local
+.vector-memory.json
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
