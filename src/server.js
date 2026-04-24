@@ -4,6 +4,7 @@
 
 import { createServer } from "http";
 import { URL } from "url";
+import { execFileSync } from "child_process";
 import dotenv from "dotenv";
 import { initDb, getStats } from "./db.js";
 import { searchMemories, recentMemories } from "./query.js";
@@ -13,6 +14,36 @@ dotenv.config();
 
 const PORT = parseInt(process.env.PORT || "3010");
 const HOST = process.env.HOST || "127.0.0.1";
+
+function parseList(value) {
+  return value ? value.split(",").map((item) => item.trim()).filter(Boolean) : null;
+}
+
+function readFilters(searchParams) {
+  return {
+    types: parseList(searchParams.get("types")),
+    organization: searchParams.get("organization") || null,
+    project: searchParams.get("project") || null,
+    repoName: searchParams.get("repo_name") || null,
+    memoryType: searchParams.get("memory_type") || null,
+    status: searchParams.get("status") || null,
+    criticality: searchParams.get("criticality") || null,
+    tags: parseList(searchParams.get("tags")),
+  };
+}
+
+function buildIngestEnv(body) {
+  return {
+    ...process.env,
+    MEMORY_ORGANIZATION: body.organization || "",
+    MEMORY_PROJECT: body.project || "",
+    MEMORY_REPO_NAME: body.repo_name || "",
+    MEMORY_TYPE: body.memory_type || body.type || "",
+    MEMORY_STATUS: body.status || "active",
+    MEMORY_CRITICALITY: body.criticality || "normal",
+    MEMORY_TAGS: Array.isArray(body.tags) ? body.tags.join(",") : body.tags || "",
+  };
+}
 
 async function handleRequest(req, res) {
   const url = new URL(req.url, `http://${HOST}:${PORT}`);
@@ -32,10 +63,9 @@ async function handleRequest(req, res) {
       }
 
       const limit = parseInt(url.searchParams.get("limit") || "5");
-      const typesParam = url.searchParams.get("types");
-      const types = typesParam ? typesParam.split(",") : null;
+      const filters = readFilters(url.searchParams);
 
-      const results = await searchMemories(q, { limit, types });
+      const results = await searchMemories(q, { limit, ...filters });
 
       res.writeHead(200);
       return res.end(
@@ -50,10 +80,9 @@ async function handleRequest(req, res) {
     // GET /recent?limit=5&types=session
     if (path === "/recent" && req.method === "GET") {
       const limit = parseInt(url.searchParams.get("limit") || "5");
-      const typesParam = url.searchParams.get("types");
-      const types = typesParam ? typesParam.split(",") : null;
+      const filters = readFilters(url.searchParams);
 
-      const results = await recentMemories({ limit, types });
+      const results = await recentMemories({ limit, ...filters });
 
       res.writeHead(200);
       return res.end(
@@ -76,17 +105,18 @@ async function handleRequest(req, res) {
       let body = "";
       for await (const chunk of req) body += chunk;
 
-      const { path: filePath, type: sourceType } = JSON.parse(body || "{}");
+      const payload = JSON.parse(body || "{}");
+      const { path: filePath, type: sourceType } = payload;
       if (!filePath) {
         res.writeHead(400);
         return res.end(JSON.stringify({ error: "Campo 'path' requerido" }));
       }
 
       // Ingestar en background usando child_process
-      const { execSync } = await import("child_process");
-      const result = execSync(
-        `node src/ingest-one.js "${filePath}" ${sourceType || "session"}`,
-        { encoding: "utf-8", timeout: 60000 }
+      const result = execFileSync(
+        "node",
+        ["src/ingest-one.js", filePath, sourceType || "session"],
+        { encoding: "utf-8", timeout: 60000, env: buildIngestEnv(payload) }
       ).trim();
 
       res.writeHead(200);

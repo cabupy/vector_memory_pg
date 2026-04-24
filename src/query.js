@@ -36,8 +36,15 @@ export async function searchMemories(queryText, options = {}) {
     source_type: row.source_type,
     source_path: row.source_path,
     session_key: row.session_key,
+    organization: row.organization,
+    project: row.project,
+    repo_name: row.repo_name,
+    memory_type: row.memory_type,
+    status: row.status,
+    criticality: row.criticality,
+    tags: row.tags,
     created_at: row.created_at,
-    score: parseFloat(row.similarity?.toFixed(4)),
+    score: row.similarity == null ? null : parseFloat(row.similarity.toFixed(4)),
     metadata: row.metadata,
   }));
 }
@@ -53,6 +60,15 @@ export async function recentMemories(options = {}) {
     content: row.content,
     source_type: row.source_type,
     source_path: row.source_path,
+    session_key: row.session_key,
+    organization: row.organization,
+    project: row.project,
+    repo_name: row.repo_name,
+    memory_type: row.memory_type,
+    status: row.status,
+    criticality: row.criticality,
+    tags: row.tags,
     created_at: row.created_at,
+    metadata: row.metadata,
   }));
 }

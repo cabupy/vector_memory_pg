@@ -41,18 +41,41 @@ export async function insertMemory(memory) {
     : null;
 
   await pool.query(
-    `INSERT INTO memories (id, content, source_type, source_path, session_key, created_at, metadata, chunk_index, token_count, embedding)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::vector)
-     ON CONFLICT (id) DO UPDATE SET
-       content = EXCLUDED.content,
-       embedding = EXCLUDED.embedding,
-       token_count = EXCLUDED.token_count`,
+    `INSERT INTO memories (
+       id, content, source_type, source_path, session_key,
+       organization, project, repo_name, memory_type, status, criticality, tags,
+       created_at, metadata, chunk_index, token_count, embedding
+     )
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::vector)
+      ON CONFLICT (id) DO UPDATE SET
+        content = EXCLUDED.content,
+        source_type = EXCLUDED.source_type,
+        source_path = EXCLUDED.source_path,
+        session_key = EXCLUDED.session_key,
+        organization = EXCLUDED.organization,
+        project = EXCLUDED.project,
+        repo_name = EXCLUDED.repo_name,
+        memory_type = EXCLUDED.memory_type,
+        status = EXCLUDED.status,
+        criticality = EXCLUDED.criticality,
+        tags = EXCLUDED.tags,
+        metadata = EXCLUDED.metadata,
+        chunk_index = EXCLUDED.chunk_index,
+        embedding = EXCLUDED.embedding,
+        token_count = EXCLUDED.token_count`,
     [
       memory.id,
       memory.content,
       memory.sourceType,
       memory.sourcePath,
       memory.sessionKey || null,
+      memory.organization || null,
+      memory.project || null,
+      memory.repoName || null,
+      memory.memoryType || memory.sourceType || "memory",
+      memory.status || "active",
+      memory.criticality || "normal",
+      memory.tags || [],
       memory.createdAt || new Date().toISOString(),
       memory.metadata ? JSON.stringify(memory.metadata) : null,
       memory.chunkIndex || 0,
@@ -69,6 +92,28 @@ export async function deleteBySource(sourcePath) {
   await pool.query("DELETE FROM memories WHERE source_path = $1", [sourcePath]);
 }
 
+function addMemoryFilters(sqlParts, params, options) {
+  const filters = [
+    ["organization", options.organization],
+    ["project", options.project],
+    ["repo_name", options.repoName],
+    ["memory_type", options.memoryType],
+    ["status", options.status],
+    ["criticality", options.criticality],
+  ];
+
+  for (const [column, value] of filters) {
+    if (!value) continue;
+    params.push(value);
+    sqlParts.push(` AND ${column} = $${params.length}`);
+  }
+
+  if (options.tags && options.tags.length > 0) {
+    params.push(options.tags);
+    sqlParts.push(` AND tags && $${params.length}::text[]`);
+  }
+}
+
 /**
  * Búsqueda por coseno — reemplaza la fuerza bruta en JS del artículo
  * En SQLite: cargaba TODOS los BLOBs y calculaba coseno en un loop JS
@@ -81,6 +126,7 @@ export async function queryByEmbedding(embedding, options = {}) {
 
   let sql = `
     SELECT id, content, source_type, source_path, session_key,
+           organization, project, repo_name, memory_type, status, criticality, tags,
            created_at, metadata, chunk_index,
            1 - (embedding <=> $1::vector) AS similarity
     FROM memories
@@ -89,9 +135,13 @@ export async function queryByEmbedding(embedding, options = {}) {
   const params = [embeddingStr];
 
   if (types && types.length > 0) {
-    sql += ` AND source_type = ANY($2)`;
     params.push(types);
+    sql += ` AND source_type = ANY($${params.length})`;
   }
+
+  const sqlParts = [];
+  addMemoryFilters(sqlParts, params, options);
+  sql += sqlParts.join("");
 
   sql += ` ORDER BY embedding <=> $1::vector LIMIT $${params.length + 1}`;
   params.push(limit);
@@ -107,7 +157,9 @@ export async function getRecent(options = {}) {
   const limit = options.limit || 5;
   const types = options.types || null;
 
-  let sql = `SELECT id, content, source_type, source_path, session_key, created_at, metadata
+  let sql = `SELECT id, content, source_type, source_path, session_key,
+                    organization, project, repo_name, memory_type, status, criticality, tags,
+                    created_at, metadata
              FROM memories WHERE 1=1`;
   const params = [];
 
@@ -115,6 +167,10 @@ export async function getRecent(options = {}) {
     params.push(types);
     sql += ` AND source_type = ANY($${params.length})`;
   }
+
+  const sqlParts = [];
+  addMemoryFilters(sqlParts, params, options);
+  sql += sqlParts.join("");
 
   params.push(limit);
   sql += ` ORDER BY created_at DESC LIMIT $${params.length}`;

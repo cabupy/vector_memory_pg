@@ -19,6 +19,14 @@ import pool from "./db.js";
 
 dotenv.config();
 
+function parseTags(value) {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
 async function ingestOne() {
   const filePath = process.argv[2];
   const sourceType = process.argv[3] || "session"; // session | daily | memory | brain
@@ -82,6 +90,15 @@ async function ingestOne() {
 
     // Guardar en PostgreSQL
     const createdAt = fileStat.mtime.toISOString();
+    const baseMetadata = {
+      organization: process.env.MEMORY_ORGANIZATION || null,
+      project: process.env.MEMORY_PROJECT || null,
+      repoName: process.env.MEMORY_REPO_NAME || null,
+      memoryType: process.env.MEMORY_TYPE || sourceType,
+      status: process.env.MEMORY_STATUS || "active",
+      criticality: process.env.MEMORY_CRITICALITY || "normal",
+      tags: parseTags(process.env.MEMORY_TAGS),
+    };
 
     for (let i = 0; i < chunks.length; i++) {
       await insertMemory({
@@ -90,6 +107,7 @@ async function ingestOne() {
         sourceType,
         sourcePath: filePath,
         sessionKey: chunks[i].sessionKey || null,
+        ...baseMetadata,
         createdAt,
         chunkIndex: chunks[i].index,
         tokenCount: estimateTokens(chunks[i].content),

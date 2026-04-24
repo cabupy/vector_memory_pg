@@ -17,6 +17,50 @@ import { initDb, getStats } from "./db.js";
 import { searchMemories, recentMemories } from "./query.js";
 import pool from "./db.js";
 
+const memoryFiltersSchema = {
+  types: z
+    .array(z.enum(["session", "daily", "memory", "docs", "brain"]))
+    .optional()
+    .describe("Filtrar por source_type. Si se omite, busca en todos."),
+  organization: z.string().optional().describe("Filtrar por organización"),
+  project: z.string().optional().describe("Filtrar por proyecto"),
+  repo_name: z.string().optional().describe("Filtrar por repo"),
+  memory_type: z.string().optional().describe("Filtrar por tipo de memoria"),
+  status: z.string().optional().describe("Filtrar por estado: active, deprecated, superseded, archived"),
+  criticality: z.string().optional().describe("Filtrar por criticidad"),
+  tags: z.array(z.string()).optional().describe("Filtrar por tags"),
+};
+
+function normalizeFilters(args) {
+  return {
+    types: args.types,
+    organization: args.organization,
+    project: args.project,
+    repoName: args.repo_name,
+    memoryType: args.memory_type,
+    status: args.status,
+    criticality: args.criticality,
+    tags: args.tags,
+  };
+}
+
+function formatContext(memory) {
+  return [
+    memory.organization,
+    memory.project,
+    memory.repo_name,
+    memory.memory_type,
+    memory.status,
+    memory.criticality,
+  ]
+    .filter(Boolean)
+    .join(" / ");
+}
+
+function formatDate(value) {
+  return value ? value.slice(0, 10) : "sin fecha";
+}
+
 // --- Inicializar servidor MCP ---
 
 const server = new McpServer({
@@ -39,15 +83,14 @@ server.tool(
       .optional()
       .default(5)
       .describe("Número máximo de resultados (default: 5)"),
-    types: z
-      .array(z.enum(["session", "daily", "memory", "docs"]))
-      .optional()
-      .describe(
-        "Filtrar por tipo: session, daily, memory, docs. Si se omite, busca en todos."
-      ),
+    ...memoryFiltersSchema,
   },
-  async ({ query, limit, types }) => {
-    const results = await searchMemories(query, { limit, types });
+  async (args) => {
+    const { query, limit } = args;
+    const results = await searchMemories(query, {
+      limit,
+      ...normalizeFilters(args),
+    });
 
     if (results.length === 0) {
       return {
@@ -63,7 +106,7 @@ server.tool(
     const formatted = results
       .map(
         (r, i) =>
-          `[${i + 1}] Score: ${r.score} | Tipo: ${r.source_type} | Fecha: ${r.created_at?.slice(0, 10)}\n${r.content}`
+          `[${i + 1}] Score: ${r.score} | Tipo: ${r.source_type} | Contexto: ${formatContext(r) || "sin metadata"} | Fecha: ${formatDate(r.created_at)}\n${r.content}`
       )
       .join("\n\n---\n\n");
 
@@ -92,13 +135,14 @@ server.tool(
       .optional()
       .default(5)
       .describe("Número máximo de resultados (default: 5)"),
-    types: z
-      .array(z.enum(["session", "daily", "memory", "docs"]))
-      .optional()
-      .describe("Filtrar por tipo. Si se omite, devuelve todos los tipos."),
+    ...memoryFiltersSchema,
   },
-  async ({ limit, types }) => {
-    const results = await recentMemories({ limit, types });
+  async (args) => {
+    const { limit } = args;
+    const results = await recentMemories({
+      limit,
+      ...normalizeFilters(args),
+    });
 
     if (results.length === 0) {
       return {
@@ -109,7 +153,7 @@ server.tool(
     const formatted = results
       .map(
         (r, i) =>
-          `[${i + 1}] Tipo: ${r.source_type} | Fecha: ${r.created_at?.slice(0, 10)}\n${r.content.slice(0, 300)}...`
+          `[${i + 1}] Tipo: ${r.source_type} | Contexto: ${formatContext(r) || "sin metadata"} | Fecha: ${formatDate(r.created_at)}\n${r.content.slice(0, 300)}...`
       )
       .join("\n\n---\n\n");
 
