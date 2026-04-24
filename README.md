@@ -164,7 +164,7 @@ tags=auth,jwt
 Ejemplo:
 
 ```bash
-curl "http://localhost:3010/query?q=rate+limit+JWT&repo_name=identity-service&memory_type=security&status=active&limit=5"
+curl "http://localhost:3010/query?q=rate+limit+JWT&repo_name=api-service&memory_type=security&status=active&limit=5"
 ```
 
 ### Memorias recientes

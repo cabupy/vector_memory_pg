@@ -110,7 +110,7 @@ command:
 Para correr tests de integración usar npm run test:integration.
 
 integration:
-payment-gateway se comunica por VPN y requiere trazabilidad por transaction_id.
+El proveedor de pagos se comunica por VPN y requiere trazabilidad por transaction_id.
 ```
 
 ## Por qué es importante
@@ -147,7 +147,7 @@ En identity-service todos los endpoints públicos deben tener rate limit y audit
 
 ```text
 update_memory:
-La integración con payment-gateway ya no usa solo batch; se está migrando a operación online.
+La integración con el proveedor de pagos ya no usa solo batch; se está migrando a operación online.
 ```
 
 ## Ejemplo de `deprecate_memory`
@@ -299,7 +299,7 @@ payment-gateway
 banking-network
 Express 5
 NFD
-demo-project
+workflow-engine
 PostGIS
 rate limit
 SES
@@ -334,7 +334,7 @@ Esto permite hacer búsquedas más precisas:
 ```sql
 SELECT *
 FROM memories
-WHERE repo_name = 'identity-service'
+WHERE repo_name = 'api-service'
 ORDER BY
   vector_score DESC,
   text_rank DESC;
@@ -407,7 +407,7 @@ integración con sistemas existentes
 
 ## Por qué es importante
 
-Para una empresa como ExampleCorp/ACME, no alcanza con que cada developer tenga una memoria local.
+Para una empresa con varios equipos, no alcanza con que cada developer tenga una memoria local.
 El valor está en construir una memoria técnica compartida que pueda sobrevivir a:
 
 ```text
@@ -446,7 +446,7 @@ asistente interactivo
 ```bash
 vector-memory init
 vector-memory ingest
-vector-memory search "rate limit identity-service"
+vector-memory search "rate limit api-service"
 vector-memory recent
 vector-memory stats
 vector-memory doctor
