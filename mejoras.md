@@ -223,7 +223,7 @@ Esto es clave en proyectos de largo plazo, especialmente con múltiples repos y 
 
 # 5. Seguridad antes de indexar
 
-Estado: en progreso. Ya se agregó una denylist de paths sensibles antes de indexar, aplicada en `ingest-one` y en `POST /ingest`. Quedan pendientes detector de secretos por contenido, redacción automática, dry-run y logs de sanitización.
+Estado: en progreso. Ya se agregó una denylist de paths sensibles antes de indexar y un detector de secretos por contenido antes de vectorizar. Quedan pendientes redacción automática, dry-run y logs de sanitización.
 
 Como el sistema puede leer sesiones JSONL, documentos, archivos `.md` y memorias técnicas, es fundamental evitar guardar secretos.
 
@@ -934,7 +934,7 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 ## Fase 3 — Seguridad
 
 ```text
-- [ ] Detector de secretos.
+- [x] Detector de secretos.
 - [ ] Redacción automática.
 - [x] Denylist de paths.
 - [ ] Dry-run de ingesta.
