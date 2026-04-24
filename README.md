@@ -109,7 +109,7 @@ verification_score
 ## Requisitos
 
 - Node.js 18+
-- PostgreSQL 14+
+- PostgreSQL 16+
 - Extension pgvector instalada
 - OpenAI API key con acceso a `text-embedding-3-small`
 
@@ -124,7 +124,7 @@ npm run setup
 Editar `.env`:
 
 ```env
-DATABASE_URL=postgresql://usuario:password@localhost:5432/vector_memory_db
+DATABASE_URL=postgresql://usuario:password@localhost:5435/vector_memory_db
 OPENAI_API_KEY=tu_openai_api_key_aqui
 ```
 
@@ -226,28 +226,51 @@ Herramientas disponibles:
 
 ## Seguridad
 
-Antes de indexar, el sistema bloquea paths sensibles conocidos:
+Antes de indexar, el sistema aplica dos capas de protección:
+
+**Denylist de paths** — bloquea archivos sensibles conocidos:
 
 ```text
-.env
-.env.*
-*.pem
-*.key
-id_rsa
-id_ed25519
-credentials.json
-service-account.json
-secrets/
-.secrets/
+.env, .env.*
+*.pem, *.key
+id_rsa, id_ed25519
+credentials.json, service-account.json
+secrets/, .secrets/
 ```
 
-Pendiente para futuras versiones:
+**Detector de secretos por contenido** — detecta y bloquea (o redacta) patrones como:
 
 ```text
-detector de secretos por contenido
-redaccion automatica
-dry-run de ingesta
-logs de sanitizacion
+private keys, OpenAI API keys, Google API keys
+AWS access keys, JWTs, postgres/mongodb URLs
+tokens, passwords, generic secrets
+```
+
+Configurar el modo via variable de entorno:
+
+```env
+INGEST_SECRET_MODE=block    # bloquea la ingesta (default)
+INGEST_SECRET_MODE=redact   # reemplaza secretos con [REDACTED:<type>]
+```
+
+**Dry-run** — simular ingesta sin guardar nada:
+
+```bash
+node src/ingest-one.js archivo.md memory --dry-run
+```
+
+Via HTTP API:
+
+```bash
+curl -X POST http://localhost:3010/ingest \
+  -H "Content-Type: application/json" \
+  -d '{ "path": "archivo.md", "type": "memory", "dry_run": true }'
+```
+
+**Log de sanitización** — consultar historial de eventos:
+
+```bash
+curl "http://localhost:3010/sanitization-log?limit=20"
 ```
 
 ## Scripts
@@ -256,8 +279,9 @@ logs de sanitizacion
 npm run setup       # Crea/actualiza schema
 npm run server      # HTTP API local
 npm run mcp         # MCP server stdio
-npm run query       # Cliente/query local
+npm run ingest      # Ingesta incremental de todos los archivos configurados
 npm run ingest:one  # Ingesta de un archivo
+npm run query       # Cliente/query local
 ```
 
 ## Estructura
@@ -271,10 +295,14 @@ src/
   ingest-one.js   Ingesta incremental de un archivo
   embeddings.js   OpenAI embeddings via fetch
   chunker.js      Chunking de JSONL y Markdown
-  security.js     Denylist de paths sensibles
+  security.js     Denylist, detector de secretos, redaccion
   setup-db.js     Inicializacion del schema
 sql/
-  schema.sql      DDL idempotente
+  schema.sql      DDL idempotente (memories + ingest_log + sanitization_log)
+scripts/
+  ingest.sh       Ingesta incremental de sesiones, notas y docs
+docs/
+  mejoras.md      Roadmap detallado con estado por item
 ```
 
 ## Open Source
@@ -285,7 +313,7 @@ Antes de abrir un PR, revisa [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Roadmap
 
-El roadmap detallado esta en [mejoras.md](./mejoras.md).
+El roadmap detallado esta en [docs/mejoras.md](./docs/mejoras.md).
 
 ## Creditos
 
