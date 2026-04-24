@@ -30,13 +30,17 @@
     "hnsw",
     "rag"
   ],
+  "bin": {
+    "vector-memory": "./src/cli.js"
+  },
   "scripts": {
     "setup": "node src/setup-db.js",
     "ingest": "bash scripts/ingest.sh",
     "ingest:one": "node src/ingest-one.js",
     "server": "node src/server.js",
     "query": "node src/query.js",
-    "mcp": "node src/mcp-server.js"
+    "mcp": "node src/mcp-server.js",
+    "cli": "node src/cli.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",

@@ -17,6 +17,8 @@ Repositorio: [github.com/cabupy/vector_memory_pg](https://github.com/cabupy/vect
 - Herramientas MCP de lectura y escritura de memoria.
 - Control de vigencia con `status` y `last_verified_at`.
 - Denylist basica para evitar indexar paths sensibles como `.env`, llaves privadas y credenciales.
+- Detector de secretos por contenido con modos `block` y `redact`.
+- CLI `vector-memory` con comandos `init-project`, `doctor`, `ingest` y `search`.
 
 ## Casos De Uso
 
@@ -273,6 +275,76 @@ curl -X POST http://localhost:3010/ingest \
 curl "http://localhost:3010/sanitization-log?limit=20"
 ```
 
+## CLI
+
+Una vez instalado con `npm link` (o publicado en npm), el binario `vector-memory` queda disponible globalmente.
+
+### init-project
+
+Crea `.vector-memory.json` en el directorio actual con la configuración del proyecto. Auto-detecta `repo_name` y `organization` desde el remote de git.
+
+```bash
+vector-memory init-project
+```
+
+Modo no interactivo:
+
+```bash
+vector-memory init-project --yes \
+  --org ACME \
+  --project demo-project \
+  --repo api-service \
+  --type docs \
+  --criticality normal \
+  --ingest-paths "README.md,docs/"
+```
+
+Con ingesta inicial inmediata:
+
+```bash
+vector-memory init-project --yes --ingest
+```
+
+### doctor
+
+Verifica que todo esté en orden: Node.js, env vars, DB, pgvector y config local.
+
+```bash
+vector-memory doctor
+```
+
+### ingest
+
+Ingesta los archivos definidos en `ingest_paths` del `.vector-memory.json`, o los paths que se pasen como argumento. Expande directorios buscando `.md` y `.jsonl`.
+
+```bash
+vector-memory ingest                  # usa ingest_paths de la config
+vector-memory ingest docs/guia.md    # archivo específico
+vector-memory ingest --dry-run       # simula sin guardar
+vector-memory ingest --secret-mode redact  # redacta secretos en lugar de bloquear
+```
+
+### search
+
+Busca memorias por similitud semántica con output legible.
+
+```bash
+vector-memory search "rate limit JWT"
+vector-memory search "arquitectura microservicios" --limit 10
+vector-memory search "docker deploy" --repo api-service --type deployment
+vector-memory search "seguridad" --status active --criticality high
+```
+
+### Uso desde otro proyecto
+
+```bash
+# En el directorio de otro proyecto:
+vector-memory init-project          # crea .vector-memory.json con config del repo
+vector-memory doctor                # verifica que todo esté listo
+vector-memory ingest                # ingesta README.md y docs/
+vector-memory search "migraciones"  # busca en todas las memorias
+```
+
 ## Scripts
 
 ```bash
@@ -282,12 +354,14 @@ npm run mcp         # MCP server stdio
 npm run ingest      # Ingesta incremental de todos los archivos configurados
 npm run ingest:one  # Ingesta de un archivo
 npm run query       # Cliente/query local
+npm run cli         # Alias para node src/cli.js
 ```
 
 ## Estructura
 
 ```text
 src/
+  cli.js          CLI: init-project, doctor, ingest, search
   db.js           PostgreSQL + pgvector + queries
   query.js        API interna de busqueda/escritura
   mcp-server.js   Herramientas MCP
