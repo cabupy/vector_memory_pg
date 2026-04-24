@@ -92,6 +92,28 @@ export async function deleteBySource(sourcePath) {
   await pool.query("DELETE FROM memories WHERE source_path = $1", [sourcePath]);
 }
 
+export async function deprecateMemoryById(id, options = {}) {
+  const result = await pool.query(
+    `UPDATE memories
+     SET status = 'deprecated',
+         metadata = COALESCE(metadata, '{}'::jsonb) || $2::jsonb
+     WHERE id = $1
+     RETURNING id, content, status, metadata`,
+    [
+      id,
+      JSON.stringify({
+        deprecated: {
+          at: new Date().toISOString(),
+          reason: options.reason || null,
+          author: options.author || null,
+        },
+      }),
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
 function addMemoryFilters(sqlParts, params, options) {
   const filters = [
     ["organization", options.organization],

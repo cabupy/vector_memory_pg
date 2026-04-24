@@ -3,7 +3,12 @@
 
 import { embedOne } from "./embeddings.js";
 import { randomUUID } from "crypto";
-import { queryByEmbedding, getRecent, insertMemory } from "./db.js";
+import {
+  queryByEmbedding,
+  getRecent,
+  insertMemory,
+  deprecateMemoryById,
+} from "./db.js";
 import { estimateTokens } from "./chunker.js";
 
 /**
@@ -112,4 +117,8 @@ export async function saveMemory(options) {
   });
 
   return { id, content };
+}
+
+export async function deprecateMemory(id, options = {}) {
+  return deprecateMemoryById(id, options);
 }

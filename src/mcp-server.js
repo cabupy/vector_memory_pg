@@ -14,7 +14,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, "../.env") });
 
 import { initDb, getStats } from "./db.js";
-import { searchMemories, recentMemories, saveMemory } from "./query.js";
+import {
+  searchMemories,
+  recentMemories,
+  saveMemory,
+  deprecateMemory,
+} from "./query.js";
 import pool from "./db.js";
 
 const memoryFiltersSchema = {
@@ -114,6 +119,36 @@ server.tool(
         {
           type: "text",
           text: `Memoria guardada: ${memory.id}`,
+        },
+      ],
+    };
+  }
+);
+
+// --- Herramienta: deprecate_memory ---
+
+server.tool(
+  "deprecate_memory",
+  "Marca una memoria existente como deprecated sin eliminarla, registrando motivo y autor en metadata.",
+  {
+    id: z.string().min(1).describe("ID de la memoria a deprecar"),
+    reason: z.string().optional().describe("Motivo por el que la memoria queda obsoleta"),
+    author: z.string().optional().describe("Autor humano o agente que depreca la memoria"),
+  },
+  async ({ id, reason, author }) => {
+    const memory = await deprecateMemory(id, { reason, author });
+
+    if (!memory) {
+      return {
+        content: [{ type: "text", text: `No existe memoria con id: ${id}` }],
+      };
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Memoria deprecada: ${memory.id}`,
         },
       ],
     };
