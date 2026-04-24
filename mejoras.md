@@ -168,7 +168,7 @@ Esto convierte el sistema en una memoria operativa real para agentes.
 
 # 4. Control de obsolescencia y vigencia
 
-Estado: completado para MVP. Ya se agregó el campo `status` al schema con valor por defecto `active` e índice dedicado. También se conectó con ingesta, HTTP API y MCP.
+Estado: completado para MVP. Ya se agregó el campo `status` al schema con valor por defecto `active` e índice dedicado. También se agregó `last_verified_at` y la herramienta MCP `verify_memory` para marcar memorias verificadas.
 
 Una memoria vieja puede ser peligrosa.
 El agente podría recuperar una decisión antigua y aplicarla como si siguiera vigente.
@@ -924,7 +924,7 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 - [x] Agregar MCP save_memory.
 - [x] Agregar MCP update_memory.
 - [x] Agregar MCP deprecate_memory.
-- Agregar last_verified_at.
+- [x] Agregar last_verified_at.
 - [x] Agregar criticality y tags en schema.
 - [x] Conectar criticality y tags con ingesta/API/MCP.
 ```
