@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS memories (
   metadata      JSONB,
   chunk_index   INTEGER DEFAULT 0,
   token_count   INTEGER DEFAULT 0,
+  search_vector TSVECTOR GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED,
   embedding     vector(1536)         -- openai text-embedding-3-small = 1536 dims
 );
 
@@ -36,6 +37,7 @@ ALTER TABLE memories ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'acti
 ALTER TABLE memories ADD COLUMN IF NOT EXISTS criticality TEXT NOT NULL DEFAULT 'normal';
 ALTER TABLE memories ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE memories ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ;
+ALTER TABLE memories ADD COLUMN IF NOT EXISTS search_vector TSVECTOR GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED;
 
 -- Control de ingesta incremental (equivalente a ingest_log)
 CREATE TABLE IF NOT EXISTS ingest_log (
@@ -61,3 +63,4 @@ CREATE INDEX IF NOT EXISTS idx_memories_status ON memories(status);
 CREATE INDEX IF NOT EXISTS idx_memories_criticality ON memories(criticality);
 CREATE INDEX IF NOT EXISTS idx_memories_tags ON memories USING gin(tags);
 CREATE INDEX IF NOT EXISTS idx_memories_last_verified_at ON memories(last_verified_at DESC);
+CREATE INDEX IF NOT EXISTS idx_memories_search_vector ON memories USING gin(search_vector);

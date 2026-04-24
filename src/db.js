@@ -193,16 +193,28 @@ export async function queryByEmbedding(embedding, options = {}) {
   const limit = options.limit || 5;
   const types = options.types || null;
   const embeddingStr = `[${embedding.join(",")}]`;
+  const queryText = options.queryText || "";
 
   let sql = `
     SELECT id, content, source_type, source_path, session_key,
            organization, project, repo_name, memory_type, status, criticality, tags, last_verified_at,
            created_at, metadata, chunk_index,
-           1 - (embedding <=> $1::vector) AS similarity
+           1 - (embedding <=> $1::vector) AS similarity,
+           CASE
+             WHEN trim($2) = '' THEN 0
+             ELSE ts_rank_cd(search_vector, websearch_to_tsquery('simple', $2))
+           END AS text_rank,
+           (
+             (1 - (embedding <=> $1::vector)) * 0.75 +
+             CASE
+               WHEN trim($2) = '' THEN 0
+               ELSE ts_rank_cd(search_vector, websearch_to_tsquery('simple', $2))
+             END * 0.25
+           ) AS hybrid_score
     FROM memories
     WHERE embedding IS NOT NULL
   `;
-  const params = [embeddingStr];
+  const params = [embeddingStr, queryText];
 
   if (types && types.length > 0) {
     params.push(types);
@@ -213,7 +225,7 @@ export async function queryByEmbedding(embedding, options = {}) {
   addMemoryFilters(sqlParts, params, options);
   sql += sqlParts.join("");
 
-  sql += ` ORDER BY embedding <=> $1::vector LIMIT $${params.length + 1}`;
+  sql += ` ORDER BY hybrid_score DESC, embedding <=> $1::vector LIMIT $${params.length + 1}`;
   params.push(limit);
 
   const result = await pool.query(sql, params);
