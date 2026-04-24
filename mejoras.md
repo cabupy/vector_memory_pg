@@ -122,6 +122,8 @@ La clasificación ayuda al agente a interpretar mejor el contexto antes de modif
 
 # 3. Herramientas MCP para escribir memoria
 
+Estado: en progreso. Ya se agregó `save_memory` al MCP para guardar memorias manuales con embedding y metadata. Quedan pendientes `update_memory` y `deprecate_memory`.
+
 Actualmente el MCP expone principalmente herramientas de consulta, recientes y estadísticas.
 
 Para convertirlo en una memoria viva, el agente debería poder escribir, actualizar y deprecar memorias.
@@ -919,7 +921,7 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 ## Fase 2 — Convertirlo en memoria viva
 
 ```text
-- Agregar MCP save_memory.
+- [x] Agregar MCP save_memory.
 - Agregar MCP update_memory.
 - Agregar MCP deprecate_memory.
 - Agregar last_verified_at.
