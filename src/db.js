@@ -204,12 +204,52 @@ export async function queryByEmbedding(embedding, options = {}) {
              WHEN trim($2) = '' THEN 0
              ELSE ts_rank_cd(search_vector, websearch_to_tsquery('simple', $2))
            END AS text_rank,
+           CASE status
+             WHEN 'active' THEN 0.08
+             WHEN 'deprecated' THEN -0.25
+             WHEN 'superseded' THEN -0.35
+             WHEN 'archived' THEN -0.45
+             ELSE 0
+           END AS status_score,
+           CASE criticality
+             WHEN 'critical' THEN 0.12
+             WHEN 'high' THEN 0.08
+             WHEN 'normal' THEN 0.03
+             WHEN 'low' THEN 0
+             ELSE 0
+           END AS criticality_score,
+           CASE
+             WHEN last_verified_at IS NULL THEN -0.02
+             WHEN last_verified_at >= NOW() - INTERVAL '30 days' THEN 0.08
+             WHEN last_verified_at >= NOW() - INTERVAL '90 days' THEN 0.04
+             ELSE 0
+           END AS verification_score,
            (
-             (1 - (embedding <=> $1::vector)) * 0.75 +
+             (1 - (embedding <=> $1::vector)) * 0.70 +
              CASE
                WHEN trim($2) = '' THEN 0
                ELSE ts_rank_cd(search_vector, websearch_to_tsquery('simple', $2))
-             END * 0.25
+             END * 0.20 +
+             CASE status
+               WHEN 'active' THEN 0.08
+               WHEN 'deprecated' THEN -0.25
+               WHEN 'superseded' THEN -0.35
+               WHEN 'archived' THEN -0.45
+               ELSE 0
+             END +
+             CASE criticality
+               WHEN 'critical' THEN 0.12
+               WHEN 'high' THEN 0.08
+               WHEN 'normal' THEN 0.03
+               WHEN 'low' THEN 0
+               ELSE 0
+             END +
+             CASE
+               WHEN last_verified_at IS NULL THEN -0.02
+               WHEN last_verified_at >= NOW() - INTERVAL '30 days' THEN 0.08
+               WHEN last_verified_at >= NOW() - INTERVAL '90 days' THEN 0.04
+               ELSE 0
+             END
            ) AS hybrid_score
     FROM memories
     WHERE embedding IS NOT NULL
