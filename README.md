@@ -1,107 +1,204 @@
-# 🧠 Memoria Vectorial para Agente IA — PostgreSQL Edition
+# vector_memory_pg
 
-Adaptación del tutorial de [Carlos Azaustre](https://carlosazaustre.es/blog/memoria-vectorial-openclaw-tutorial) que usa SQLite + coseno por fuerza bruta en JS. Esta versión reemplaza SQLite por **PostgreSQL + pgvector**, delegando la búsqueda por coseno al motor de base de datos con un índice HNSW.
+Memoria tecnica persistente para agentes IA, construida sobre PostgreSQL, pgvector, OpenAI embeddings, HTTP API y MCP.
 
-Incluye además un **servidor MCP** para integrarse directamente con Claude Code y otros agentes compatibles con el protocolo MCP.
+El objetivo del proyecto es servir como una memoria institucional y consultable para desarrollo asistido por IA: sesiones, notas, documentos, decisiones tecnicas, reglas por repo y conocimiento historico que un agente pueda recuperar antes de proponer o ejecutar cambios.
 
-## Qué cambió vs. el artículo original
+Repositorio: [github.com/cabupy/vector_memory_pg](https://github.com/cabupy/vector_memory_pg)
 
-| Componente | Artículo (SQLite) | Esta versión (PostgreSQL) |
-|---|---|---|
-| Base de datos | `better-sqlite3` | `pg` (node-postgres) |
-| Almacenamiento de vectores | BLOBs (`Float32Array → Buffer`) | Tipo nativo `vector(1536)` |
-| Búsqueda por coseno | Fuerza bruta en JS (loop sobre todos los BLOBs) | Operador `<=>` con índice HNSW |
-| Escalabilidad | ~50K chunks, luego necesita sqlite-vec | Millones de chunks con HNSW |
-| Concurrencia | SQLite locks (un writer a la vez) | MVCC nativo de PostgreSQL |
-| Modelo de embeddings | `gemini-embedding-001` (768 dims) | `text-embedding-3-small` (1536 dims) |
-| Chunking | 1500 chars, 200 overlap | Igual |
-| Server HTTP | Puerto 3010, Node.js puro | Igual |
-| Ingesta incremental | `mtime` en `ingest_log` | Igual |
-| Integración MCP | No incluida | ✅ `mcp-server.js` listo para usar |
+## Caracteristicas
 
-### Lo que se mantiene idéntico
+- PostgreSQL + pgvector con embeddings `text-embedding-3-small` de 1536 dimensiones.
+- Busqueda hibrida: similitud vectorial + PostgreSQL Full-Text Search.
+- Ranking por similitud, coincidencia exacta, estado, criticidad y verificacion reciente.
+- Metadata por organizacion, proyecto, repo, tipo de memoria, estado, criticidad y tags.
+- HTTP API local para query, recientes, stats e ingesta manual.
+- Servidor MCP para agentes compatibles con Model Context Protocol.
+- Herramientas MCP de lectura y escritura de memoria.
+- Control de vigencia con `status` y `last_verified_at`.
+- Denylist basica para evitar indexar paths sensibles como `.env`, llaves privadas y credenciales.
 
-- Mismos 4 endpoints HTTP: `/query`, `/recent`, `/stats`, `/ingest`
-- Mismo chunker: sesiones JSONL (filtra tool calls) + Markdown (por secciones `##`)
-- Misma estrategia de ingesta incremental (un proceso por archivo, compara `mtime`)
-- Mismo chunker y estrategia de ingesta incremental
+## Casos De Uso
 
-### Lo que mejora
-
-- **Búsqueda**: de O(n) fuerza bruta a O(log n) con HNSW. No importa si tenés 7K o 700K chunks.
-- **Concurrencia**: múltiples lectores y writers simultáneos (MVCC).
-- **MCP nativo**: expone `search_memories`, `recent_memories` y `memory_stats` como herramientas MCP.
-- **Ya tenés PostgreSQL**: en tu servidor con PostGIS, solo agregás pgvector.
+- Recordar decisiones de arquitectura de un repo.
+- Consultar reglas de seguridad antes de modificar endpoints.
+- Guardar aprendizajes relevantes al terminar una tarea con un agente.
+- Separar memoria por empresa, proyecto y repo.
+- Deprecar memorias obsoletas sin borrarlas.
+- Verificar memorias criticas antes de reutilizarlas.
+- Buscar terminos tecnicos exactos como `JWT`, `PostGIS`, `payment-gateway`, `Docker` o `GitHub Actions`.
 
 ## Arquitectura
 
+```text
+Sesiones JSONL + Markdown + memorias MCP
+        |
+        v
+Chunker / save_memory
+        |
+        v
+OpenAI API -> text-embedding-3-small, 1536 dims
+        |
+        v
+PostgreSQL + pgvector
+        |-- vector(1536) + HNSW
+        |-- tsvector + GIN
+        |-- metadata + vigencia + criticidad
+        |
+        |-- HTTP API local
+        `-- MCP Server stdio
 ```
-Sesiones JSONL + archivos .md
-        │
-        ▼
-    Chunker ──────── 1500 chars, 200 overlap
-        │
-        ▼
-    OpenAI API ───── text-embedding-3-small, 1536 dims
-        │
-        ▼
-    PostgreSQL ───── vector(1536) + índice HNSW
-        │
-        ├── Server HTTP ──── Puerto 3010, búsqueda con operador <=>
-        └── MCP Server ───── stdio, compatible con Claude Code / OpenClaw
+
+## Modelo De Datos
+
+La tabla principal `memories` guarda, entre otros:
+
+```text
+id
+content
+source_type
+source_path
+session_key
+organization
+project
+repo_name
+memory_type
+status
+criticality
+tags
+last_verified_at
+created_at
+metadata
+chunk_index
+token_count
+search_vector
+embedding vector(1536)
+```
+
+Valores comunes:
+
+```text
+status: active, deprecated, superseded, archived
+criticality: low, normal, high, critical
+memory_type: memory, decision, architecture, security, bug, convention, command, integration, deployment, docs, session
+```
+
+## Ranking
+
+La busqueda semantica usa un score hibrido:
+
+```text
+70% similitud vectorial
+20% full-text rank
+boost/penalizacion por status
+boost por criticality
+boost por last_verified_at reciente
+```
+
+Los resultados devuelven:
+
+```text
+score
+vector_score
+text_rank
+status_score
+criticality_score
+verification_score
 ```
 
 ## Requisitos
 
-- **Node.js** 18+
-- **PostgreSQL** 14+ con **pgvector** instalado
-- **OpenAI API Key** con acceso a `text-embedding-3-small`
+- Node.js 18+
+- PostgreSQL 14+
+- Extension pgvector instalada
+- OpenAI API key con acceso a `text-embedding-3-small`
 
 ## Setup
 
 ```bash
-# 1. Instalar dependencias
 npm install
-
-# 2. Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tu DATABASE_URL y OPENAI_API_KEY
-
-# 3. Crear schema (tablas + índice HNSW)
 npm run setup
+```
 
-# 4. Indexar sesiones y memoria
-chmod +x ingest.sh
-./ingest.sh
+Editar `.env`:
 
-# 5. Arrancar el servidor HTTP
+```env
+DATABASE_URL=postgresql://usuario:password@localhost:5432/vector_memory_db
+OPENAI_API_KEY=tu_openai_api_key_aqui
+```
+
+Arrancar HTTP API:
+
+```bash
 npm run server
+```
 
-# 5b. O arrancar el servidor MCP (para Claude Code / OpenClaw)
+Arrancar MCP:
+
+```bash
 npm run mcp
 ```
 
-## Uso — HTTP API
+## HTTP API
+
+### Buscar memorias
 
 ```bash
-# Búsqueda semántica
-curl "http://localhost:3010/query?q=configuración+de+mi+agente&limit=3"
-
-# Memorias recientes
-curl "http://localhost:3010/recent?limit=5&types=session"
-
-# Estadísticas
-curl "http://localhost:3010/stats"
-
-# Ingesta manual de un archivo
-curl -X POST http://localhost:3010/ingest \
-  -H "Content-Type: application/json" \
-  -d '{"path": "/ruta/a/sesion.jsonl", "type": "session"}'
+curl "http://localhost:3010/query?q=rate+limit+JWT&limit=5"
 ```
 
-## Uso — MCP (Claude Code / OpenClaw)
+Filtros soportados:
 
-Agregar al `mcp.json` de Claude Code o al `openclaw.json`:
+```text
+types=session,daily,memory,docs,brain
+organization=ACME
+project=demo-project
+repo_name=api-service
+memory_type=security
+status=active
+criticality=high
+tags=auth,jwt
+```
+
+Ejemplo:
+
+```bash
+curl "http://localhost:3010/query?q=rate+limit+JWT&repo_name=identity-service&memory_type=security&status=active&limit=5"
+```
+
+### Memorias recientes
+
+```bash
+curl "http://localhost:3010/recent?limit=5&status=active"
+```
+
+### Estadisticas
+
+```bash
+curl "http://localhost:3010/stats"
+```
+
+### Ingesta manual
+
+```bash
+curl -X POST http://localhost:3010/ingest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "docs/architecture.md",
+    "type": "docs",
+    "organization": "ACME",
+    "project": "demo-project",
+    "repo_name": "api-service",
+    "memory_type": "architecture",
+    "criticality": "high",
+    "tags": ["architecture", "api"]
+  }'
+```
+
+## MCP
+
+Agregar al archivo MCP de tu agente:
 
 ```json
 {
@@ -115,56 +212,85 @@ Agregar al `mcp.json` de Claude Code o al `openclaw.json`:
 }
 ```
 
-Herramientas disponibles via MCP:
+Herramientas disponibles:
 
-| Herramienta | Descripción |
+| Herramienta | Descripcion |
 |---|---|
-| `search_memories` | Búsqueda semántica por texto libre |
-| `recent_memories` | Memorias más recientes sin búsqueda |
-| `memory_stats` | Total de chunks, tamaño DB, distribución por tipo |
+| `search_memories` | Busca memorias por similitud semantica y ranking hibrido |
+| `recent_memories` | Lista memorias recientes con filtros |
+| `memory_stats` | Devuelve estadisticas basicas |
+| `save_memory` | Guarda una memoria manual con embedding y metadata |
+| `update_memory` | Actualiza contenido/metadata y recalcula embedding si cambia el contenido |
+| `deprecate_memory` | Marca una memoria como `deprecated` sin borrarla |
+| `verify_memory` | Actualiza `last_verified_at` y registra auditoria en metadata |
 
-Tipos de memoria soportados: `session`, `daily`, `memory`, `docs`
+## Seguridad
 
-## Ingesta automática (cron)
+Antes de indexar, el sistema bloquea paths sensibles conocidos:
+
+```text
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_ed25519
+credentials.json
+service-account.json
+secrets/
+.secrets/
+```
+
+Pendiente para futuras versiones:
+
+```text
+detector de secretos por contenido
+redaccion automatica
+dry-run de ingesta
+logs de sanitizacion
+```
+
+## Scripts
 
 ```bash
-# Agregar a crontab -e — cada hora
-0 * * * * cd /ruta/a/vector_memory_pg && ./ingest.sh >> /var/log/vector-memory-ingest.log 2>&1
+npm run setup       # Crea/actualiza schema
+npm run server      # HTTP API local
+npm run mcp         # MCP server stdio
+npm run query       # Cliente/query local
+npm run ingest:one  # Ingesta de un archivo
 ```
 
 ## Estructura
 
-```
-vector-memory-pg/
-├── src/
-│   ├── mcp-server.js  — Servidor MCP (search_memories, recent_memories, memory_stats)
-│   ├── server.js      — HTTP API en puerto 3010
-│   ├── ingest-one.js  — Ingesta incremental de un archivo
-│   ├── embeddings.js  — API de OpenAI (batch de 100)
-│   ├── chunker.js     — Troceado de sesiones JSONL y markdown
-│   ├── db.js          — PostgreSQL + pgvector (pool, queries, coseno HNSW)
-│   ├── query.js       — Búsqueda semántica
-│   └── setup-db.js    — Inicialización del schema
-├── sql/
-│   └── schema.sql     — DDL: tablas, índice HNSW
-├── ingest.sh          — Script bash para ingesta incremental
-├── .env.example       — Variables de entorno requeridas
-└── package.json
+```text
+src/
+  db.js           PostgreSQL + pgvector + queries
+  query.js        API interna de busqueda/escritura
+  mcp-server.js   Herramientas MCP
+  server.js       HTTP API
+  ingest-one.js   Ingesta incremental de un archivo
+  embeddings.js   OpenAI embeddings via fetch
+  chunker.js      Chunking de JSONL y Markdown
+  security.js     Denylist de paths sensibles
+  setup-db.js     Inicializacion del schema
+sql/
+  schema.sql      DDL idempotente
 ```
 
-## Dependencias
+## Open Source
 
-```json
-{
-  "@modelcontextprotocol/sdk": "^1.28.0",
-  "dotenv": "^16.4.0",
-  "pg": "^8.13.0",
-  "zod": "^3.x"
-}
-```
+Este proyecto acepta contribuciones. Bugs, mejoras, documentacion, issues, ideas de arquitectura y PRs son bienvenidos.
 
-> No se usa el SDK oficial de OpenAI — los embeddings se generan con `fetch` nativo para mantener las dependencias mínimas.
+Antes de abrir un PR, revisa [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-## Créditos
+## Roadmap
 
-Basado en el artículo de [Carlos Azaustre](https://carlosazaustre.es/blog/memoria-vectorial-openclaw-tutorial).
+El roadmap detallado esta en [mejoras.md](./mejoras.md).
+
+## Creditos
+
+Inspirado por el tutorial de [Carlos Azaustre](https://carlosazaustre.es/blog/memoria-vectorial-openclaw-tutorial), evolucionado hacia una memoria tecnica persistente e institucional para agentes IA.
+
+## Licencia
+
+MIT. Ver [LICENSE](./LICENSE).

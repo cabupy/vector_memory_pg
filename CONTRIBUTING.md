@@ -1,39 +1,113 @@
-# Contribuir a vector-memory-pg
+# Contribuir a vector_memory_pg
 
-¡Gracias por tu interés! Este proyecto acepta contribuciones de cualquier tipo: bugs, features, docs, tests.
+Gracias por tu interes en contribuir.
 
-## Reportar un bug
+Repositorio: [github.com/cabupy/vector_memory_pg](https://github.com/cabupy/vector_memory_pg)
 
-Usá el template de issue "Bug Report". Incluí:
-- Versión de Node.js y PostgreSQL
-- Versión de pgvector (`SELECT extversion FROM pg_extension WHERE extname = 'vector'`)
-- El error exacto (logs completos)
-- Pasos para reproducirlo
+Este proyecto acepta contribuciones de bugs, features, documentacion, seguridad, testing, ideas de arquitectura y mejoras de DX/CLI.
 
-## Proponer una feature
+## Antes De Empezar
 
-Abrí un issue con el template "Feature Request" antes de escribir código. Así evitamos trabajo duplicado.
+- Revisa el [README.md](./README.md).
+- Revisa el roadmap en [mejoras.md](./mejoras.md).
+- Abre un issue antes de implementar cambios grandes.
+- No incluyas secretos, `.env`, llaves privadas ni credenciales en issues, commits o PRs.
 
-## Abrir un Pull Request
+## Reportar Bugs
 
-1. Forkear el repo
-2. Crear una rama desde `main`: `git checkout -b feature/mi-feature`
-3. Hacer los cambios
-4. Verificar que el servidor HTTP y MCP arrancan sin errores:
-   ```bash
-   npm run setup
-   npm run server
-   npm run mcp
-   ```
-5. Abrir el PR con descripción clara de qué cambia y por qué
+Abre un issue en:
 
-## Estilo de código
+```text
+https://github.com/cabupy/vector_memory_pg/issues
+```
 
-- ES Modules (`import/export`), no CommonJS
-- Sin dependencias nuevas sin discutirlo en el issue primero
-- JSDoc en funciones públicas
-- Sin `console.log` en código de producción (usar `process.stderr.write` para logs internos)
+Incluye:
 
-## Preguntas
+- Version de Node.js.
+- Version de PostgreSQL.
+- Version de pgvector: `SELECT extversion FROM pg_extension WHERE extname = 'vector';`
+- Sistema operativo.
+- Pasos para reproducir.
+- Logs relevantes.
+- Resultado esperado y resultado actual.
 
-Abrí un issue con el label `question`.
+## Proponer Features
+
+Abre un issue antes de escribir codigo si la feature cambia schema, API, MCP tools, ranking, seguridad o comportamiento de ingesta.
+
+Buenas areas para contribuir:
+
+- detector de secretos por contenido
+- redaccion automatica
+- dry-run de ingesta
+- CLI/doctor/init-project
+- tests automatizados
+- mejoras de ranking
+- administracion de memorias
+- deteccion de duplicados o contradicciones
+
+## Pull Requests
+
+1. Forkea el repo.
+2. Crea una rama desde `main`:
+
+```bash
+git checkout -b feature/mi-feature
+```
+
+3. Haz cambios pequenos y enfocados.
+4. Verifica sintaxis en archivos JS modificados:
+
+```bash
+node --check src/archivo.js
+```
+
+5. Si el cambio toca schema o runtime, prueba cuando aplique:
+
+```bash
+npm run setup
+npm run server
+npm run mcp
+```
+
+6. Actualiza README, CONTRIBUTING o `mejoras.md` si cambia comportamiento publico.
+7. Abre el PR contra `main` con una descripcion clara.
+
+## Estilo De Codigo
+
+- ES Modules (`import/export`).
+- Node.js 18+.
+- Mantener dependencias al minimo.
+- No agregar dependencias nuevas sin explicar el motivo en el issue/PR.
+- Preferir cambios pequenos y faciles de revisar.
+- Mantener SQL idempotente cuando sea migracion de schema.
+- No romper compatibilidad de endpoints o herramientas MCP sin documentarlo.
+
+## Seguridad
+
+No subas ni pegues:
+
+- `.env`
+- API keys
+- tokens
+- JWTs reales
+- llaves privadas
+- connection strings reales
+- credenciales de proveedores
+- dumps de sesiones con secretos
+
+Si encuentras un problema de seguridad, abre un issue sin incluir secretos reales o contacta al maintainer via GitHub: [@cabupy](https://github.com/cabupy).
+
+## Commits
+
+Usa mensajes claros y cortos. Ejemplos:
+
+```text
+feat: agregar detector de secretos
+fix: corregir ranking por status
+docs: actualizar ejemplos mcp
+```
+
+## Licencia
+
+Al contribuir aceptas que tus cambios se publiquen bajo la licencia MIT del proyecto.
