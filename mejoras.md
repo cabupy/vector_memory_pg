@@ -947,7 +947,7 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 - [x] Full-text search en PostgreSQL.
 - [x] Ranking híbrido vector + keyword.
 - [x] Filtros por repo/proyecto/tipo/status.
-- Scoring por criticidad y vigencia.
+- [x] Scoring por criticidad y vigencia.
 ```
 
 ## Fase 5 — UX para developers
