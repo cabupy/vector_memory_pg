@@ -58,12 +58,12 @@ export async function searchMemories(queryText, options = {}) {
     tags: row.tags,
     last_verified_at: row.last_verified_at,
     created_at: row.created_at,
-    score: row.hybrid_score == null ? null : parseFloat(row.hybrid_score.toFixed(4)),
-    vector_score: row.similarity == null ? null : parseFloat(row.similarity.toFixed(4)),
-    text_rank: row.text_rank == null ? null : parseFloat(row.text_rank.toFixed(4)),
-    status_score: row.status_score == null ? null : parseFloat(row.status_score.toFixed(4)),
-    criticality_score: row.criticality_score == null ? null : parseFloat(row.criticality_score.toFixed(4)),
-    verification_score: row.verification_score == null ? null : parseFloat(row.verification_score.toFixed(4)),
+    score: row.hybrid_score == null ? null : parseFloat(parseFloat(row.hybrid_score).toFixed(4)),
+    vector_score: row.similarity == null ? null : parseFloat(parseFloat(row.similarity).toFixed(4)),
+    text_rank: row.text_rank == null ? null : parseFloat(parseFloat(row.text_rank).toFixed(4)),
+    status_score: row.status_score == null ? null : parseFloat(parseFloat(row.status_score).toFixed(4)),
+    criticality_score: row.criticality_score == null ? null : parseFloat(parseFloat(row.criticality_score).toFixed(4)),
+    verification_score: row.verification_score == null ? null : parseFloat(parseFloat(row.verification_score).toFixed(4)),
     metadata: row.metadata,
   }));
 }

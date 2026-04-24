@@ -116,7 +116,8 @@ export function redactSecrets(content) {
  */
 export function applySecretPolicy(content, filePath, mode = "block") {
   if (mode === "redact") {
-    return redactSecrets(content);
+    const { redacted, findings } = redactSecrets(content);
+    return { content: redacted, findings };
   }
   assertNoSecrets(content, filePath);
   return { content, findings: [] };
