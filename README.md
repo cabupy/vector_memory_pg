@@ -1,5 +1,7 @@
 # vector_memory_pg
 
+![vector_memory_pg](./assets/images/banner.png)
+
 **Memoria tecnica persistente para agentes IA** — PostgreSQL + pgvector + OpenAI embeddings + HTTP API + MCP.
 
 [Instalacion](./docs/installation.md) • [CLI](./docs/cli.md) • [HTTP API](./docs/http-api.md) • [MCP](./docs/mcp.md) • [Seguridad](./docs/security.md) • [Arquitectura](./docs/architecture.md) • [Roadmap](./docs/mejoras.md) • [Contribuir](./CONTRIBUTING.md)
