@@ -16,7 +16,7 @@ import {
 import { embedBatch } from "./embeddings.js";
 import { chunkSession, chunkMarkdown, estimateTokens } from "./chunker.js";
 import pool from "./db.js";
-import { assertIngestAllowed } from "./security.js";
+import { assertIngestAllowed, assertNoSecrets } from "./security.js";
 
 dotenv.config();
 
@@ -54,6 +54,7 @@ async function ingestOne() {
 
     // Leer y trocear
     const content = await readFile(filePath, "utf-8");
+    assertNoSecrets(content, filePath);
     let chunks;
 
     if (extname(filePath) === ".jsonl") {
