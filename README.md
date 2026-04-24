@@ -9,7 +9,7 @@ Incluye además un **servidor MCP** para integrarse directamente con Claude Code
 | Componente | Artículo (SQLite) | Esta versión (PostgreSQL) |
 |---|---|---|
 | Base de datos | `better-sqlite3` | `pg` (node-postgres) |
-| Almacenamiento de vectores | BLOBs (`Float32Array → Buffer`) | Tipo nativo `vector(768)` |
+| Almacenamiento de vectores | BLOBs (`Float32Array → Buffer`) | Tipo nativo `vector(1536)` |
 | Búsqueda por coseno | Fuerza bruta en JS (loop sobre todos los BLOBs) | Operador `<=>` con índice HNSW |
 | Escalabilidad | ~50K chunks, luego necesita sqlite-vec | Millones de chunks con HNSW |
 | Concurrencia | SQLite locks (un writer a la vez) | MVCC nativo de PostgreSQL |
@@ -45,7 +45,7 @@ Sesiones JSONL + archivos .md
     OpenAI API ───── text-embedding-3-small, 1536 dims
         │
         ▼
-    PostgreSQL ───── vector(768) + índice HNSW
+    PostgreSQL ───── vector(1536) + índice HNSW
         │
         ├── Server HTTP ──── Puerto 3010, búsqueda con operador <=>
         └── MCP Server ───── stdio, compatible con Claude Code / OpenClaw
