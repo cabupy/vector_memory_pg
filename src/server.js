@@ -9,6 +9,7 @@ import dotenv from "dotenv";
 import { initDb, getStats } from "./db.js";
 import { searchMemories, recentMemories } from "./query.js";
 import pool from "./db.js";
+import { getDeniedIngestReason } from "./security.js";
 
 dotenv.config();
 
@@ -110,6 +111,12 @@ async function handleRequest(req, res) {
       if (!filePath) {
         res.writeHead(400);
         return res.end(JSON.stringify({ error: "Campo 'path' requerido" }));
+      }
+
+      const deniedReason = getDeniedIngestReason(filePath);
+      if (deniedReason) {
+        res.writeHead(400);
+        return res.end(JSON.stringify({ error: deniedReason }));
       }
 
       // Ingestar en background usando child_process

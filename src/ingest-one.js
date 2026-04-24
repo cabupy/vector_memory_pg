@@ -16,6 +16,7 @@ import {
 import { embedBatch } from "./embeddings.js";
 import { chunkSession, chunkMarkdown, estimateTokens } from "./chunker.js";
 import pool from "./db.js";
+import { assertIngestAllowed } from "./security.js";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ async function ingestOne() {
   }
 
   try {
+    assertIngestAllowed(filePath);
     await initDb();
 
     // Comprobar si el archivo cambió (por mtime, como en el artículo)
