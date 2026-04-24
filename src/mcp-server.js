@@ -20,6 +20,7 @@ import {
   saveMemory,
   deprecateMemory,
   updateMemory,
+  verifyMemory,
 } from "./query.js";
 import pool from "./db.js";
 
@@ -80,6 +81,7 @@ function formatContext(memory) {
     memory.memory_type,
     memory.status,
     memory.criticality,
+    memory.last_verified_at ? `verified ${formatDate(memory.last_verified_at)}` : null,
   ]
     .filter(Boolean)
     .join(" / ");
@@ -206,6 +208,36 @@ server.tool(
         {
           type: "text",
           text: `Memoria actualizada: ${memory.id}`,
+        },
+      ],
+    };
+  }
+);
+
+// --- Herramienta: verify_memory ---
+
+server.tool(
+  "verify_memory",
+  "Marca una memoria como verificada ahora, registrando auditoría en metadata.",
+  {
+    id: z.string().min(1).describe("ID de la memoria a verificar"),
+    author: z.string().optional().describe("Autor humano o agente que verifica la memoria"),
+    note: z.string().optional().describe("Nota opcional sobre la verificación"),
+  },
+  async ({ id, author, note }) => {
+    const memory = await verifyMemory(id, { author, note });
+
+    if (!memory) {
+      return {
+        content: [{ type: "text", text: `No existe memoria con id: ${id}` }],
+      };
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Memoria verificada: ${memory.id}`,
         },
       ],
     };

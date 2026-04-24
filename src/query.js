@@ -55,6 +55,7 @@ export async function searchMemories(queryText, options = {}) {
     status: row.status,
     criticality: row.criticality,
     tags: row.tags,
+    last_verified_at: row.last_verified_at,
     created_at: row.created_at,
     score: row.similarity == null ? null : parseFloat(row.similarity.toFixed(4)),
     metadata: row.metadata,
@@ -80,6 +81,7 @@ export async function recentMemories(options = {}) {
     status: row.status,
     criticality: row.criticality,
     tags: row.tags,
+    last_verified_at: row.last_verified_at,
     created_at: row.created_at,
     metadata: row.metadata,
   }));
@@ -106,6 +108,7 @@ export async function saveMemory(options) {
     status: options.status || "active",
     criticality: options.criticality || "normal",
     tags: options.tags || [],
+    lastVerifiedAt: options.lastVerifiedAt || null,
     createdAt: new Date().toISOString(),
     metadata: {
       source: "mcp",
@@ -134,6 +137,7 @@ export async function updateMemory(id, options = {}) {
     status: options.status,
     criticality: options.criticality,
     tags: options.tags,
+    lastVerifiedAt: options.lastVerifiedAt,
     metadata: {
       updated: {
         at: new Date().toISOString(),
@@ -151,4 +155,18 @@ export async function updateMemory(id, options = {}) {
   }
 
   return updateMemoryById(id, updates);
+}
+
+export async function verifyMemory(id, options = {}) {
+  const verifiedAt = new Date().toISOString();
+  return updateMemoryById(id, {
+    lastVerifiedAt: verifiedAt,
+    metadata: {
+      verified: {
+        at: verifiedAt,
+        author: options.author || null,
+        note: options.note || null,
+      },
+    },
+  });
 }

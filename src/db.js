@@ -43,10 +43,10 @@ export async function insertMemory(memory) {
   await pool.query(
     `INSERT INTO memories (
        id, content, source_type, source_path, session_key,
-       organization, project, repo_name, memory_type, status, criticality, tags,
+       organization, project, repo_name, memory_type, status, criticality, tags, last_verified_at,
        created_at, metadata, chunk_index, token_count, embedding
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17::vector)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18::vector)
       ON CONFLICT (id) DO UPDATE SET
         content = EXCLUDED.content,
         source_type = EXCLUDED.source_type,
@@ -59,6 +59,7 @@ export async function insertMemory(memory) {
         status = EXCLUDED.status,
         criticality = EXCLUDED.criticality,
         tags = EXCLUDED.tags,
+        last_verified_at = EXCLUDED.last_verified_at,
         metadata = EXCLUDED.metadata,
         chunk_index = EXCLUDED.chunk_index,
         embedding = EXCLUDED.embedding,
@@ -76,6 +77,7 @@ export async function insertMemory(memory) {
       memory.status || "active",
       memory.criticality || "normal",
       memory.tags || [],
+      memory.lastVerifiedAt || null,
       memory.createdAt || new Date().toISOString(),
       memory.metadata ? JSON.stringify(memory.metadata) : null,
       memory.chunkIndex || 0,
@@ -133,6 +135,7 @@ export async function updateMemoryById(id, updates) {
   addSet("status", updates.status);
   addSet("criticality", updates.criticality);
   addSet("tags", updates.tags);
+  addSet("last_verified_at", updates.lastVerifiedAt);
   addSet("token_count", updates.tokenCount);
 
   if (updates.embedding !== undefined) {
@@ -152,7 +155,7 @@ export async function updateMemoryById(id, updates) {
      WHERE id = $1
      RETURNING id, content, source_type, source_path, session_key,
                organization, project, repo_name, memory_type, status, criticality, tags,
-               created_at, metadata, chunk_index, token_count`,
+               last_verified_at, created_at, metadata, chunk_index, token_count`,
     params
   );
 
@@ -193,7 +196,7 @@ export async function queryByEmbedding(embedding, options = {}) {
 
   let sql = `
     SELECT id, content, source_type, source_path, session_key,
-           organization, project, repo_name, memory_type, status, criticality, tags,
+           organization, project, repo_name, memory_type, status, criticality, tags, last_verified_at,
            created_at, metadata, chunk_index,
            1 - (embedding <=> $1::vector) AS similarity
     FROM memories
@@ -225,7 +228,7 @@ export async function getRecent(options = {}) {
   const types = options.types || null;
 
   let sql = `SELECT id, content, source_type, source_path, session_key,
-                    organization, project, repo_name, memory_type, status, criticality, tags,
+                    organization, project, repo_name, memory_type, status, criticality, tags, last_verified_at,
                     created_at, metadata
              FROM memories WHERE 1=1`;
   const params = [];
