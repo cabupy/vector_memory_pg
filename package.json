@@ -1,10 +1,21 @@
 {
   "name": "vector-memory-pg",
   "version": "1.0.0",
-  "description": "Semantic memory for AI agents using PostgreSQL + pgvector + OpenAI embeddings. MCP server included.",
+  "description": "Persistent semantic memory for AI coding agents, powered by PostgreSQL + pgvector, dale AI embeddings, HTTP API, and MCP server support.",
   "type": "module",
   "license": "MIT",
-  "author": "Procesa / ExampleCorp",
+  "author": {
+    "name": "Carlos Vallejos",
+    "url": "https://github.com/cabupy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/cabupy/vector_memory_pg.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cabupy/vector_memory_pg/issues"
+  },
+  "homepage": "https://github.com/cabupy/vector_memory_pg#readme",
   "engines": {
     "node": ">=18.0.0"
   },
