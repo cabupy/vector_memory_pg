@@ -937,8 +937,8 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 - [ ] Detector de secretos.
 - [ ] Redacción automática.
 - [x] Denylist de paths.
-- Dry-run de ingesta.
-- Logs de sanitización.
+- [ ] Dry-run de ingesta.
+- [ ] Logs de sanitización.
 ```
 
 ## Fase 4 — Mejor búsqueda
@@ -953,23 +953,23 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 ## Fase 5 — UX para developers
 
 ```text
-- CLI init-project.
-- CLI doctor.
-- CLI ingest.
-- CLI search.
-- Auto-detección de git remote.
-- Ingesta automática de README.md / AGENTS.md / docs.
+- [ ] CLI init-project.
+- [ ] CLI doctor.
+- [ ] CLI ingest.
+- [ ] CLI search.
+- [ ] Auto-detección de git remote.
+- [ ] Ingesta automática de README.md / AGENTS.md / docs.
 ```
 
 ## Fase 6 — Gobierno institucional
 
 ```text
-- Administración de memorias.
-- Marcar memorias como oficiales.
-- Detectar duplicados.
-- Detectar contradicciones.
-- Métricas de uso.
-- Permisos por proyecto/equipo.
+- [ ] Administración de memorias.
+- [ ] Marcar memorias como oficiales.
+- [ ] Detectar duplicados.
+- [ ] Detectar contradicciones.
+- [ ] Métricas de uso.
+- [ ] Permisos por proyecto/equipo.
 ```
 
 ---
