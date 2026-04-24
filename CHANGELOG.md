@@ -1,5 +1,64 @@
 # Changelog
 
+Todos los cambios notables de este proyecto están documentados aquí.
+Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
+
+---
+
+## [1.4.0] - 2026-04-24
+
+### Agregado
+- `redactSecrets(content)` en `src/security.js` — reemplaza secretos detectados con `[REDACTED:<type>]`
+- `applySecretPolicy(content, filePath, mode)` — abstracción para modo `block` (default) o `redact` (via `INGEST_SECRET_MODE`)
+- Flag `--dry-run` en `ingest-one.js` — simula ingesta completa (chunking, detección de secretos, preview de chunks) sin guardar en DB
+- Soporte `dry_run: true` y `secret_mode` en `POST /ingest` de la HTTP API
+- Tabla `sanitization_log` en PostgreSQL — registra eventos de bloqueo y redacción con `file_path`, `action`, `reason`, `findings`
+- Endpoint `GET /sanitization-log` — consulta el historial de eventos de sanitización
+- Funciones `insertSanitizationLog` y `getSanitizationLog` en `src/db.js`
+
+### Corregido
+- Scores numéricos (`status_score`, `criticality_score`, etc.) devueltos por `pg` como strings — ahora se parsean con `parseFloat` antes de `toFixed`
+- `applySecretPolicy` en modo `redact` retornaba `{ redacted, findings }` en lugar de `{ content, findings }`
+
+---
+
+## [1.3.0] - 2026-04-20
+
+### Agregado
+- Herramientas MCP de escritura: `save_memory`, `update_memory`, `deprecate_memory`, `verify_memory`
+- `update_memory` recalcula embedding y `token_count` si cambia el contenido
+- `deprecate_memory` guarda auditoría en `metadata.deprecated`
+- `verify_memory` actualiza `last_verified_at` y guarda auditoría en `metadata.verified`
+- Detector de secretos en `src/security.js`: bloquea contenido con `private_key`, `openai_api_key`, `google_api_key`, `aws_access_key`, `jwt`, `postgres_url`, `mongodb_url`, `generic_secret`
+- Denylist de paths en `src/security.js`: bloquea `.env*`, `*.pem`, `*.key`, `id_rsa`, `id_ed25519`, `credentials.json`, `service-account.json`, directorios `secrets/`
+
+---
+
+## [1.2.0] - 2026-04-15
+
+### Agregado
+- Búsqueda híbrida: `70%` similitud vectorial + `20%` full-text (`ts_rank_cd`) + boosts por metadata
+- Columna `search_vector TSVECTOR GENERATED ALWAYS` con índice GIN para full-text search
+- Ranking por `status_score`, `criticality_score` y `verification_score`
+- Resultados de búsqueda incluyen `score`, `vector_score`, `text_rank`, `status_score`, `criticality_score`, `verification_score`
+- Filtros en HTTP API y MCP por `organization`, `project`, `repo_name`, `memory_type`, `status`, `criticality`, `tags`
+
+---
+
+## [1.1.0] - 2026-04-10
+
+### Agregado
+- Campos de namespace: `organization`, `project`, `repo_name` con índice compuesto
+- Campo `memory_type` (architecture, security, bug, decision, convention, command, domain, etc.)
+- Campo `status` (`active`, `deprecated`, `superseded`, `archived`) con índice
+- Campo `criticality` (`critical`, `high`, `normal`, `low`) con índice
+- Campo `tags TEXT[]` con índice GIN
+- Campo `last_verified_at TIMESTAMPTZ` con índice
+- Migración idempotente con `ALTER TABLE ADD COLUMN IF NOT EXISTS` para instalaciones existentes
+- Conectar metadata de namespace, tipo, status, criticidad y tags en ingesta, HTTP API y MCP
+
+---
+
 ## [1.0.0] - 2026-03-31
 
 ### Agregado
