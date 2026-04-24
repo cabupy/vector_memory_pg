@@ -122,7 +122,7 @@ La clasificación ayuda al agente a interpretar mejor el contexto antes de modif
 
 # 3. Herramientas MCP para escribir memoria
 
-Estado: en progreso. Ya se agregaron `save_memory` y `deprecate_memory` al MCP. Queda pendiente `update_memory`.
+Estado: completado para MVP. Ya se agregaron `save_memory`, `update_memory` y `deprecate_memory` al MCP.
 
 Actualmente el MCP expone principalmente herramientas de consulta, recientes y estadísticas.
 
@@ -922,7 +922,7 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 
 ```text
 - [x] Agregar MCP save_memory.
-- Agregar MCP update_memory.
+- [x] Agregar MCP update_memory.
 - [x] Agregar MCP deprecate_memory.
 - Agregar last_verified_at.
 - [x] Agregar criticality y tags en schema.
