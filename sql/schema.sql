@@ -64,3 +64,16 @@ CREATE INDEX IF NOT EXISTS idx_memories_criticality ON memories(criticality);
 CREATE INDEX IF NOT EXISTS idx_memories_tags ON memories USING gin(tags);
 CREATE INDEX IF NOT EXISTS idx_memories_last_verified_at ON memories(last_verified_at DESC);
 CREATE INDEX IF NOT EXISTS idx_memories_search_vector ON memories USING gin(search_vector);
+
+-- Registro de eventos de sanitización (secretos detectados, redactados o bloqueados)
+CREATE TABLE IF NOT EXISTS sanitization_log (
+  id          BIGSERIAL PRIMARY KEY,
+  logged_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  file_path   TEXT NOT NULL,
+  action      TEXT NOT NULL,  -- 'blocked_path' | 'blocked_content' | 'redacted'
+  reason      TEXT,
+  findings    JSONB           -- [{type, line}]
+);
+
+CREATE INDEX IF NOT EXISTS idx_sanitization_log_logged_at ON sanitization_log(logged_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sanitization_log_file_path ON sanitization_log(file_path);

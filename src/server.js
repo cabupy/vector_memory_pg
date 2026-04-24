@@ -6,7 +6,7 @@ import { createServer } from "http";
 import { URL } from "url";
 import { execFileSync } from "child_process";
 import dotenv from "dotenv";
-import { initDb, getStats } from "./db.js";
+import { initDb, getStats, getSanitizationLog } from "./db.js";
 import { searchMemories, recentMemories } from "./query.js";
 import pool from "./db.js";
 import { getDeniedIngestReason } from "./security.js";
@@ -43,6 +43,7 @@ function buildIngestEnv(body) {
     MEMORY_STATUS: body.status || "active",
     MEMORY_CRITICALITY: body.criticality || "normal",
     MEMORY_TAGS: Array.isArray(body.tags) ? body.tags.join(",") : body.tags || "",
+    INGEST_SECRET_MODE: body.secret_mode || process.env.INGEST_SECRET_MODE || "block",
   };
 }
 
@@ -101,6 +102,15 @@ async function handleRequest(req, res) {
       return res.end(JSON.stringify(stats));
     }
 
+    // GET /sanitization-log?limit=50&file_path=<path>
+    if (path === "/sanitization-log" && req.method === "GET") {
+      const limit = parseInt(url.searchParams.get("limit") || "50");
+      const filePath = url.searchParams.get("file_path") || null;
+      const rows = await getSanitizationLog({ limit, filePath });
+      res.writeHead(200);
+      return res.end(JSON.stringify({ count: rows.length, results: rows }));
+    }
+
     // POST /ingest (trigger manual de ingesta)
     if (path === "/ingest" && req.method === "POST") {
       let body = "";
@@ -119,15 +129,23 @@ async function handleRequest(req, res) {
         return res.end(JSON.stringify({ error: deniedReason }));
       }
 
-      // Ingestar en background usando child_process
+      // Construir args: soporte dry_run
+      const ingestArgs = ["src/ingest-one.js", filePath, sourceType || "session"];
+      if (payload.dry_run) ingestArgs.push("--dry-run");
+
+      // Ingestar usando child_process
       const result = execFileSync(
         "node",
-        ["src/ingest-one.js", filePath, sourceType || "session"],
+        ingestArgs,
         { encoding: "utf-8", timeout: 60000, env: buildIngestEnv(payload) }
       ).trim();
 
+      // dry_run devuelve JSON; intentar parsear
+      let parsed;
+      try { parsed = JSON.parse(result); } catch { parsed = null; }
+
       res.writeHead(200);
-      return res.end(JSON.stringify({ result }));
+      return res.end(JSON.stringify(parsed ?? { result }));
     }
 
     // 404

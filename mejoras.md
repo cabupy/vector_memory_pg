@@ -935,10 +935,10 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 
 ```text
 - [x] Detector de secretos.
-- [ ] Redacción automática.
+- [x] Redacción automática (INGEST_SECRET_MODE=redact reemplaza con [REDACTED:<type>]).
 - [x] Denylist de paths.
-- [ ] Dry-run de ingesta.
-- [ ] Logs de sanitización.
+- [x] Dry-run de ingesta (--dry-run en CLI, dry_run en HTTP API).
+- [x] Logs de sanitización (tabla sanitization_log + GET /sanitization-log).
 ```
 
 ## Fase 4 — Mejor búsqueda

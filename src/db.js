@@ -348,4 +348,38 @@ export async function upsertIngestLog(sourcePath, lastModified, chunkCount) {
   );
 }
 
+/**
+ * Registra un evento de sanitización en el log.
+ * action: 'blocked_path' | 'blocked_content' | 'redacted'
+ */
+export async function insertSanitizationLog({ filePath, action, reason, findings = [] }) {
+  await pool.query(
+    `INSERT INTO sanitization_log (file_path, action, reason, findings)
+     VALUES ($1, $2, $3, $4)`,
+    [filePath, action, reason || null, JSON.stringify(findings)]
+  );
+}
+
+/**
+ * Devuelve los últimos registros de sanitización.
+ */
+export async function getSanitizationLog({ limit = 50, filePath = null } = {}) {
+  const conditions = [];
+  const params = [];
+
+  if (filePath) {
+    params.push(filePath);
+    conditions.push(`file_path = $${params.length}`);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  params.push(limit);
+
+  const r = await pool.query(
+    `SELECT * FROM sanitization_log ${where} ORDER BY logged_at DESC LIMIT $${params.length}`,
+    params
+  );
+  return r.rows;
+}
+
 export default pool;

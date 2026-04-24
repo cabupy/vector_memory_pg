@@ -86,3 +86,38 @@ export function assertNoSecrets(content, filePath) {
     `contenido bloqueado por posible secreto en ${filePath}: ${summary}${suffix}`
   );
 }
+
+/**
+ * Redacta secretos detectados en el contenido reemplazándolos con [REDACTED:<type>].
+ * Retorna { redacted: string, findings: Array<{type, line}> }
+ */
+export function redactSecrets(content) {
+  const lines = content.split(/\r?\n/);
+  const findings = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    for (const [type, pattern] of SECRET_PATTERNS) {
+      // Necesitamos flag 'g' para reemplazar todas las ocurrencias en la línea
+      const globalPattern = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g");
+      if (globalPattern.test(lines[i])) {
+        findings.push({ type, line: i + 1 });
+        lines[i] = lines[i].replace(globalPattern, `[REDACTED:${type}]`);
+      }
+    }
+  }
+
+  return { redacted: lines.join("\n"), findings };
+}
+
+/**
+ * Aplica la política de secretos según el modo configurado.
+ * mode: 'block' (default) | 'redact'
+ * Retorna { content: string, findings: Array<{type, line}> }
+ */
+export function applySecretPolicy(content, filePath, mode = "block") {
+  if (mode === "redact") {
+    return redactSecrets(content);
+  }
+  assertNoSecrets(content, filePath);
+  return { content, findings: [] };
+}

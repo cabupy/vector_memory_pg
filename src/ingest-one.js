@@ -1,6 +1,8 @@
 // ingest-one.js — Ingesta de un solo archivo
 // Equivale a ingest-one.ts del artículo.
 // Cada invocación: comprueba mtime → trocea → embebe → guarda → sale.
+// Flags: --dry-run (simula sin guardar)
+// Env:   INGEST_SECRET_MODE=block|redact (default: block)
 
 import { readFile, stat } from "fs/promises";
 import { basename, extname } from "path";
@@ -12,11 +14,12 @@ import {
   deleteBySource,
   getIngestLog,
   upsertIngestLog,
+  insertSanitizationLog,
 } from "./db.js";
 import { embedBatch } from "./embeddings.js";
 import { chunkSession, chunkMarkdown, estimateTokens } from "./chunker.js";
 import pool from "./db.js";
-import { assertIngestAllowed, assertNoSecrets } from "./security.js";
+import { getDeniedIngestReason, applySecretPolicy } from "./security.js";
 
 dotenv.config();
 
@@ -29,57 +32,95 @@ function parseTags(value) {
 }
 
 async function ingestOne() {
-  const filePath = process.argv[2];
-  const sourceType = process.argv[3] || "session"; // session | daily | memory | brain
+  const args = process.argv.slice(2);
+  const dryRun = args.includes("--dry-run");
+  const filePath = args.find((a) => !a.startsWith("--"));
+  const sourceType = args.filter((a) => !a.startsWith("--"))[1] || "session";
+  const secretMode = process.env.INGEST_SECRET_MODE || "block";
 
   if (!filePath) {
-    console.error("Uso: node src/ingest-one.js <archivo> <tipo>");
+    console.error("Uso: node src/ingest-one.js <archivo> <tipo> [--dry-run]");
     process.exit(1);
   }
 
   try {
-    assertIngestAllowed(filePath);
+    // Verificar denylist de paths
+    const deniedReason = getDeniedIngestReason(filePath);
+    if (deniedReason) {
+      await initDb();
+      await insertSanitizationLog({ filePath, action: "blocked_path", reason: deniedReason });
+      throw new Error(deniedReason);
+    }
+
     await initDb();
 
-    // Comprobar si el archivo cambió (por mtime, como en el artículo)
+    // Comprobar si el archivo cambió (por mtime)
     const fileStat = await stat(filePath);
     const mtime = fileStat.mtime.toISOString();
 
-    const log = await getIngestLog(filePath);
-    if (log && log.last_modified === mtime) {
-      console.log("SKIP");
-      await pool.end();
-      return;
+    if (!dryRun) {
+      const log = await getIngestLog(filePath);
+      if (log && log.last_modified === mtime) {
+        console.log("SKIP");
+        await pool.end();
+        return;
+      }
     }
 
-    // Leer y trocear
-    const content = await readFile(filePath, "utf-8");
-    assertNoSecrets(content, filePath);
-    let chunks;
+    // Leer contenido
+    let content = await readFile(filePath, "utf-8");
 
+    // Aplicar política de secretos (block o redact)
+    const { content: safeContent, findings } = applySecretPolicy(content, filePath, secretMode);
+
+    if (findings.length > 0) {
+      const action = secretMode === "redact" ? "redacted" : "blocked_content";
+      await insertSanitizationLog({ filePath, action, reason: `${findings.length} secreto(s) detectado(s)`, findings });
+      if (secretMode === "block") {
+        const summary = findings.slice(0, 5).map((f) => `${f.type} línea ${f.line}`).join(", ");
+        throw new Error(`contenido bloqueado por posible secreto en ${filePath}: ${summary}`);
+      }
+      console.warn(`[Security] ${findings.length} secreto(s) redactado(s) en ${filePath}`);
+    }
+
+    content = safeContent;
+
+    // Trocear
+    let chunks;
     if (extname(filePath) === ".jsonl") {
-      // Sesión JSONL de OpenClaw
       const messages = content
         .split("\n")
         .filter((line) => line.trim())
-        .map((line) => {
-          try {
-            return JSON.parse(line);
-          } catch {
-            return null;
-          }
-        })
+        .map((line) => { try { return JSON.parse(line); } catch { return null; } })
         .filter(Boolean);
-
       const sessionKey = basename(filePath, ".jsonl");
       chunks = chunkSession(messages, sessionKey);
     } else {
-      // Archivo Markdown (.md)
       chunks = chunkMarkdown(content, filePath);
     }
 
     if (chunks.length === 0) {
       console.log("SKIP:empty");
+      await pool.end();
+      return;
+    }
+
+    // Modo dry-run: imprimir resumen y salir sin guardar
+    if (dryRun) {
+      console.log(JSON.stringify({
+        dry_run: true,
+        file: filePath,
+        source_type: sourceType,
+        secret_mode: secretMode,
+        secrets_found: findings.length,
+        secrets: findings,
+        chunks: chunks.length,
+        preview: chunks.slice(0, 3).map((c) => ({
+          index: c.index,
+          tokens: estimateTokens(c.content),
+          preview: c.content.slice(0, 120).replace(/\n/g, " "),
+        })),
+      }, null, 2));
       await pool.end();
       return;
     }
