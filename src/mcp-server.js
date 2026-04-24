@@ -14,7 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, "../.env") });
 
 import { initDb, getStats } from "./db.js";
-import { searchMemories, recentMemories } from "./query.js";
+import { searchMemories, recentMemories, saveMemory } from "./query.js";
 import pool from "./db.js";
 
 const memoryFiltersSchema = {
@@ -31,9 +31,31 @@ const memoryFiltersSchema = {
   tags: z.array(z.string()).optional().describe("Filtrar por tags"),
 };
 
+const memoryMetadataSchema = {
+  organization: z.string().optional().describe("Organización de la memoria"),
+  project: z.string().optional().describe("Proyecto de la memoria"),
+  repo_name: z.string().optional().describe("Repo asociado a la memoria"),
+  memory_type: z.string().optional().describe("Tipo de memoria: decision, security, architecture, bug, etc."),
+  status: z.string().optional().describe("Estado de vigencia: active, deprecated, superseded, archived"),
+  criticality: z.string().optional().describe("Criticidad: low, normal, high, critical"),
+  tags: z.array(z.string()).optional().describe("Tags para clasificar la memoria"),
+};
+
 function normalizeFilters(args) {
   return {
     types: args.types,
+    organization: args.organization,
+    project: args.project,
+    repoName: args.repo_name,
+    memoryType: args.memory_type,
+    status: args.status,
+    criticality: args.criticality,
+    tags: args.tags,
+  };
+}
+
+function normalizeMetadata(args) {
+  return {
     organization: args.organization,
     project: args.project,
     repoName: args.repo_name,
@@ -67,6 +89,36 @@ const server = new McpServer({
   name: "vector-memory",
   version: "1.0.0",
 });
+
+// --- Herramienta: save_memory ---
+
+server.tool(
+  "save_memory",
+  "Guarda una memoria técnica persistente con embedding y metadata para recuperarla luego por búsqueda semántica.",
+  {
+    content: z.string().min(1).describe("Contenido de la memoria a guardar"),
+    author: z.string().optional().describe("Autor humano o agente que originó la memoria"),
+    source_path: z.string().optional().describe("Fuente lógica o archivo relacionado"),
+    ...memoryMetadataSchema,
+  },
+  async (args) => {
+    const memory = await saveMemory({
+      content: args.content,
+      author: args.author,
+      sourcePath: args.source_path,
+      ...normalizeMetadata(args),
+    });
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Memoria guardada: ${memory.id}`,
+        },
+      ],
+    };
+  }
+);
 
 // --- Herramienta: search_memories ---
 

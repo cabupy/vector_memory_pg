@@ -2,7 +2,9 @@
 // Equivale a queryMemories() del artículo, pero el coseno lo hace PostgreSQL
 
 import { embedOne } from "./embeddings.js";
-import { queryByEmbedding, getRecent } from "./db.js";
+import { randomUUID } from "crypto";
+import { queryByEmbedding, getRecent, insertMemory } from "./db.js";
+import { estimateTokens } from "./chunker.js";
 
 /**
  * Busca memorias por similitud semántica.
@@ -75,4 +77,39 @@ export async function recentMemories(options = {}) {
     created_at: row.created_at,
     metadata: row.metadata,
   }));
+}
+
+/**
+ * Guarda una memoria manual con embedding para uso desde MCP.
+ */
+export async function saveMemory(options) {
+  const content = options.content.trim();
+  const id = `manual_${Date.now()}_${randomUUID().slice(0, 8)}`;
+  const embedding = await embedOne(content);
+
+  await insertMemory({
+    id,
+    content,
+    sourceType: "memory",
+    sourcePath: options.sourcePath || "mcp://save_memory",
+    sessionKey: null,
+    organization: options.organization || null,
+    project: options.project || null,
+    repoName: options.repoName || null,
+    memoryType: options.memoryType || "memory",
+    status: options.status || "active",
+    criticality: options.criticality || "normal",
+    tags: options.tags || [],
+    createdAt: new Date().toISOString(),
+    metadata: {
+      source: "mcp",
+      created_by_agent: true,
+      author: options.author || null,
+    },
+    chunkIndex: 0,
+    tokenCount: estimateTokens(content),
+    embedding,
+  });
+
+  return { id, content };
 }
