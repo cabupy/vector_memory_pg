@@ -287,6 +287,8 @@ Antes de vectorizar y guardar, conviene sanitizar.
 
 # 6. Búsqueda híbrida: vectorial + full-text
 
+Estado: completado para MVP. Ya se agregó `search_vector` con índice GIN y ranking híbrido que combina similitud vectorial con `ts_rank_cd` de PostgreSQL Full-Text Search usando configuración `simple` para términos técnicos.
+
 La búsqueda vectorial es muy buena para recuperar contexto semántico, pero en desarrollo muchas veces se necesitan coincidencias exactas.
 
 ## Ejemplos de términos donde conviene búsqueda exacta
@@ -942,9 +944,9 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 ## Fase 4 — Mejor búsqueda
 
 ```text
-- Full-text search en PostgreSQL.
-- Ranking híbrido vector + keyword.
-- Filtros por repo/proyecto/tipo/status.
+- [x] Full-text search en PostgreSQL.
+- [x] Ranking híbrido vector + keyword.
+- [x] Filtros por repo/proyecto/tipo/status.
 - Scoring por criticidad y vigencia.
 ```
 
