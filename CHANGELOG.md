@@ -5,6 +5,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.5.0] - 2026-04-24
+
+### Agregado
+- CLI `vector-memory` (`src/cli.js`) con cuatro comandos:
+  - `init-project` — crea `.vector-memory.json`, auto-detecta `repo_name`/`org` del git remote, flag `--yes` no-interactivo, flag `--ingest` para ingesta inmediata
+  - `doctor` — verifica Node 18+, `DATABASE_URL`, `OPENAI_API_KEY`, config file, conexión PG, extensión pgvector y tabla `memories`
+  - `ingest` — expande directorios, propaga config al entorno, soporta `--dry-run` y `--secret-mode`, spawn de `ingest-one.js`
+  - `search` — búsqueda semántica con output legible, flags `--limit`, `--repo`, `--type`, `--status`, `--org`, `--project`
+- `package.json`: entrada `bin` → `vector-memory`, script `npm run cli`
+- Supresión de `ExperimentalWarning` (Fetch API) en Node 18
+- README refactorizado como hub (400 → 89 líneas): tagline, barra de navegación, Quick Start, tabla de docs
+- 6 documentos en `docs/`: `installation.md`, `cli.md`, `http-api.md`, `mcp.md`, `security.md`, `architecture.md`
+- Banner `assets/images/banner.png` (1280×640) en README
+- `.npmignore` para excluir `assets/`, `docs/`, `scripts/` del paquete npm
+- `.vector-memory.json` agregado a `.gitignore`
+
+---
+
 ## [1.4.0] - 2026-04-24
 
 ### Agregado
