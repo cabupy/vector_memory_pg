@@ -28,7 +28,11 @@ export async function searchMemories(queryText, options = {}) {
   const queryEmbedding = await embedOne(queryText);
 
   // Buscar en PostgreSQL (coseno nativo con operador <=>)
-  const rows = await queryByEmbedding(queryEmbedding, { limit, types });
+  const rows = await queryByEmbedding(queryEmbedding, {
+    ...options,
+    limit,
+    types,
+  });
 
   return rows.map((row) => ({
     id: row.id,
