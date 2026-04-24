@@ -319,6 +319,8 @@ El roadmap detallado esta en [docs/mejoras.md](./docs/mejoras.md).
 
 Inspirado por el tutorial de [Carlos Azaustre](https://carlosazaustre.es/blog/memoria-vectorial-openclaw-tutorial), evolucionado hacia una memoria tecnica persistente e institucional para agentes IA.
 
+Autor: [Carlos Vallejos (cabupy)](https://github.com/cabupy)
+
 ## Licencia
 
 MIT. Ver [LICENSE](./LICENSE).
