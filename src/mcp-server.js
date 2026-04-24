@@ -19,6 +19,7 @@ import {
   recentMemories,
   saveMemory,
   deprecateMemory,
+  updateMemory,
 } from "./query.js";
 import pool from "./db.js";
 
@@ -149,6 +150,62 @@ server.tool(
         {
           type: "text",
           text: `Memoria deprecada: ${memory.id}`,
+        },
+      ],
+    };
+  }
+);
+
+// --- Herramienta: update_memory ---
+
+server.tool(
+  "update_memory",
+  "Actualiza una memoria existente. Si cambia el contenido, recalcula el embedding.",
+  {
+    id: z.string().min(1).describe("ID de la memoria a actualizar"),
+    content: z.string().optional().describe("Nuevo contenido de la memoria"),
+    author: z.string().optional().describe("Autor humano o agente que actualiza la memoria"),
+    reason: z.string().optional().describe("Motivo de la actualización"),
+    source_path: z.string().optional().describe("Nueva fuente lógica o archivo relacionado"),
+    ...memoryMetadataSchema,
+  },
+  async (args) => {
+    const hasContent = Boolean(args.content && args.content.trim());
+    const hasMetadata = [
+      args.source_path,
+      args.organization,
+      args.project,
+      args.repo_name,
+      args.memory_type,
+      args.status,
+      args.criticality,
+    ].some(Boolean) || (args.tags && args.tags.length > 0);
+
+    if (!hasContent && !hasMetadata) {
+      return {
+        content: [{ type: "text", text: "No hay cambios para aplicar." }],
+      };
+    }
+
+    const memory = await updateMemory(args.id, {
+      content: hasContent ? args.content : undefined,
+      author: args.author,
+      reason: args.reason,
+      sourcePath: args.source_path,
+      ...normalizeMetadata(args),
+    });
+
+    if (!memory) {
+      return {
+        content: [{ type: "text", text: `No existe memoria con id: ${args.id}` }],
+      };
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Memoria actualizada: ${memory.id}`,
         },
       ],
     };

@@ -114,6 +114,51 @@ export async function deprecateMemoryById(id, options = {}) {
   return result.rows[0] || null;
 }
 
+export async function updateMemoryById(id, updates) {
+  const setClauses = [];
+  const params = [id];
+
+  function addSet(column, value, cast = "") {
+    if (value === undefined) return;
+    params.push(value);
+    setClauses.push(`${column} = $${params.length}${cast}`);
+  }
+
+  addSet("content", updates.content);
+  addSet("source_path", updates.sourcePath);
+  addSet("organization", updates.organization);
+  addSet("project", updates.project);
+  addSet("repo_name", updates.repoName);
+  addSet("memory_type", updates.memoryType);
+  addSet("status", updates.status);
+  addSet("criticality", updates.criticality);
+  addSet("tags", updates.tags);
+  addSet("token_count", updates.tokenCount);
+
+  if (updates.embedding !== undefined) {
+    addSet("embedding", `[${updates.embedding.join(",")}]`, "::vector");
+  }
+
+  if (updates.metadata) {
+    params.push(JSON.stringify(updates.metadata));
+    setClauses.push(`metadata = COALESCE(metadata, '{}'::jsonb) || $${params.length}::jsonb`);
+  }
+
+  if (setClauses.length === 0) return null;
+
+  const result = await pool.query(
+    `UPDATE memories
+     SET ${setClauses.join(",\n         ")}
+     WHERE id = $1
+     RETURNING id, content, source_type, source_path, session_key,
+               organization, project, repo_name, memory_type, status, criticality, tags,
+               created_at, metadata, chunk_index, token_count`,
+    params
+  );
+
+  return result.rows[0] || null;
+}
+
 function addMemoryFilters(sqlParts, params, options) {
   const filters = [
     ["organization", options.organization],

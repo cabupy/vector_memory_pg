@@ -8,6 +8,7 @@ import {
   getRecent,
   insertMemory,
   deprecateMemoryById,
+  updateMemoryById,
 } from "./db.js";
 import { estimateTokens } from "./chunker.js";
 
@@ -121,4 +122,33 @@ export async function saveMemory(options) {
 
 export async function deprecateMemory(id, options = {}) {
   return deprecateMemoryById(id, options);
+}
+
+export async function updateMemory(id, options = {}) {
+  const updates = {
+    sourcePath: options.sourcePath,
+    organization: options.organization,
+    project: options.project,
+    repoName: options.repoName,
+    memoryType: options.memoryType,
+    status: options.status,
+    criticality: options.criticality,
+    tags: options.tags,
+    metadata: {
+      updated: {
+        at: new Date().toISOString(),
+        author: options.author || null,
+        reason: options.reason || null,
+      },
+    },
+  };
+
+  if (options.content) {
+    const content = options.content.trim();
+    updates.content = content;
+    updates.embedding = await embedOne(content);
+    updates.tokenCount = estimateTokens(content);
+  }
+
+  return updateMemoryById(id, updates);
 }
