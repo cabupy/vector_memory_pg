@@ -1,6 +1,6 @@
 // db.js — PostgreSQL + pgvector
 // Reemplaza: better-sqlite3 + BLOBs + coseno en JS
-// Ahora: pg pool + vector(768) + coseno nativo con operador <=>
+// Ahora: pg pool + vector(1536) + coseno nativo con operador <=>
 
 import pg from "pg";
 import { readFile } from "fs/promises";

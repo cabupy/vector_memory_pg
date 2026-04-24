@@ -15,7 +15,7 @@ async function setup() {
     );
     console.log("[Setup] ✅ Schema creado exitosamente");
     console.log("[Setup] Tablas: memories, ingest_log");
-    console.log("[Setup] Índice: HNSW sobre vector(768)");
+    console.log("[Setup] Índice: HNSW sobre vector(1536)");
     console.log(`[Setup] DB size: ${stats.rows[0].size}`);
   } catch (err) {
     console.error("[Setup] ❌ Error:", err.message);
