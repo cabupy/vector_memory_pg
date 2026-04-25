@@ -5,6 +5,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.8.0] - 2026-04-25
+
+### Agregado
+- MCP tool `search_memories_compact` — búsqueda semántica con salida reducida (snippet 150 chars) para minimizar uso de context window
+- MCP tool `get_memories` — recupera memorias completas por lista de IDs o public_ids (VM-XXXXXX); complemento natural de compact
+- MCP tool `memory_timeline` — historial cronológico agrupado por fecha, con filtros de período y metadata
+- HTTP `GET /query/compact` — equivalente HTTP de search_memories_compact
+- HTTP `GET /memories?ids=id1,id2` — fetch de memorias por IDs
+- HTTP `GET /timeline?project=<p>&from=YYYY-MM-DD` — timeline por HTTP
+- `AGENTS.md` — system prompt de referencia para agentes que integran vector-memory; incluye flujo de sesión, políticas de contenido, filtros disponibles y ejemplos
+
+### Cambiado
+- `db.js`: funciones `getMemoriesByIds()` y `getTimeline()` (con agrupación por día en DB)
+- `query.js`: exporta `getMemories()`, `searchMemoriesCompact()`, `memoryTimeline()`
+
+---
+
 ## [1.7.0] - 2026-04-25
 
 ### Agregado

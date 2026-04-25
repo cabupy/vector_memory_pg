@@ -383,3 +383,68 @@ export async function getSanitizationLog({ limit = 50, filePath = null } = {}) {
 }
 
 export default pool;
+
+// ─── get_memories por IDs ─────────────────────────────────────────────────────
+
+/**
+ * Devuelve memorias completas por lista de IDs o public_ids.
+ * Acepta mezcla de ambos formatos.
+ */
+export async function getMemoriesByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+
+  const result = await pool.query(
+    `SELECT id, public_id, content, source_type, source_path, session_key,
+            organization, project, repo_name, memory_type, status, criticality, tags,
+            last_verified_at, created_at, metadata, chunk_index, token_count
+     FROM memories
+     WHERE id = ANY($1) OR public_id = ANY($1)
+     ORDER BY created_at DESC`,
+    [ids]
+  );
+  return result.rows;
+}
+
+// ─── memory_timeline ──────────────────────────────────────────────────────────
+
+/**
+ * Devuelve memorias agrupadas por fecha (YYYY-MM-DD), orden cronológico DESC.
+ * Filtros opcionales: project, organization, repoName, memoryType, from, to.
+ */
+export async function getTimeline(options = {}) {
+  const { limit = 50, from = null, to = null } = options;
+
+  let sql = `
+    SELECT id, public_id, content, source_type, source_path, session_key,
+           organization, project, repo_name, memory_type, status, criticality, tags,
+           last_verified_at, created_at, metadata,
+           created_at::date AS day
+    FROM memories
+    WHERE 1=1
+  `;
+  const params = [];
+
+  if (from) { params.push(from); sql += ` AND created_at >= $${params.length}`; }
+  if (to)   { params.push(to);   sql += ` AND created_at <= $${params.length}`; }
+
+  const sqlParts = [];
+  addMemoryFilters(sqlParts, params, options);
+  sql += sqlParts.join("");
+
+  params.push(limit);
+  sql += ` ORDER BY created_at DESC LIMIT $${params.length}`;
+
+  const result = await pool.query(sql, params);
+
+  // Agrupar por día
+  const groups = new Map();
+  for (const row of result.rows) {
+    const day = row.day instanceof Date
+      ? row.day.toISOString().slice(0, 10)
+      : String(row.day).slice(0, 10);
+    if (!groups.has(day)) groups.set(day, []);
+    groups.get(day).push(row);
+  }
+
+  return Array.from(groups.entries()).map(([date, memories]) => ({ date, memories }));
+}

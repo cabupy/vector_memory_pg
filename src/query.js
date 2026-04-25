@@ -9,6 +9,8 @@ import {
   insertMemory,
   deprecateMemoryById,
   updateMemoryById,
+  getMemoriesByIds,
+  getTimeline,
 } from "./db.js";
 import { estimateTokens } from "./chunker.js";
 
@@ -199,7 +201,6 @@ export async function saveSessionSummary(options) {
 
   return { id, content };
 }
-
 export async function verifyMemory(id, options = {}) {
   const verifiedAt = new Date().toISOString();
   return updateMemoryById(id, {
@@ -212,4 +213,80 @@ export async function verifyMemory(id, options = {}) {
       },
     },
   });
+}
+
+// ─── get_memories por IDs ─────────────────────────────────────────────────────
+
+/**
+ * Devuelve memorias completas por lista de IDs o public_ids.
+ */
+export async function getMemories(ids) {
+  const rows = await getMemoriesByIds(ids);
+  return rows.map((row) => ({
+    id: row.id,
+    public_id: row.public_id,
+    content: row.content,
+    source_type: row.source_type,
+    source_path: row.source_path,
+    session_key: row.session_key,
+    organization: row.organization,
+    project: row.project,
+    repo_name: row.repo_name,
+    memory_type: row.memory_type,
+    status: row.status,
+    criticality: row.criticality,
+    tags: row.tags,
+    last_verified_at: row.last_verified_at,
+    created_at: row.created_at,
+    metadata: row.metadata,
+  }));
+}
+
+// ─── search_memories_compact ──────────────────────────────────────────────────
+
+/**
+ * Búsqueda semántica con salida reducida para minimizar uso de context window.
+ * Devuelve: id, public_id, score, snippet (150 chars), source_type, memory_type,
+ *           project, repo_name, criticality, created_at
+ */
+export async function searchMemoriesCompact(queryText, options = {}) {
+  const full = await searchMemories(queryText, options);
+  return full.map((r) => ({
+    id: r.id,
+    public_id: r.public_id,
+    score: r.score,
+    snippet: r.content.slice(0, 150).replace(/\s+/g, " "),
+    source_type: r.source_type,
+    memory_type: r.memory_type,
+    project: r.project,
+    repo_name: r.repo_name,
+    criticality: r.criticality,
+    created_at: r.created_at,
+  }));
+}
+
+// ─── memory_timeline ─────────────────────────────────────────────────────────
+
+/**
+ * Memorias agrupadas por fecha en orden cronológico inverso.
+ */
+export async function memoryTimeline(options = {}) {
+  const groups = await getTimeline(options);
+  return groups.map(({ date, memories }) => ({
+    date,
+    count: memories.length,
+    memories: memories.map((row) => ({
+      id: row.id,
+      public_id: row.public_id,
+      snippet: row.content.slice(0, 200).replace(/\s+/g, " "),
+      source_type: row.source_type,
+      memory_type: row.memory_type,
+      project: row.project,
+      repo_name: row.repo_name,
+      status: row.status,
+      criticality: row.criticality,
+      tags: row.tags,
+      created_at: row.created_at,
+    })),
+  }));
 }

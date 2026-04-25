@@ -22,6 +22,9 @@ import {
   deprecateMemory,
   updateMemory,
   verifyMemory,
+  getMemories,
+  searchMemoriesCompact,
+  memoryTimeline,
 } from "./query.js";
 import pool from "./db.js";
 import { applyContentPolicy } from "./content-policy.js";
@@ -382,6 +385,112 @@ server.tool(
           `[${i + 1}] Tipo: ${r.source_type} | Contexto: ${formatContext(r) || "sin metadata"} | Fecha: ${formatDate(r.created_at)}\n${r.content.slice(0, 300)}...`
       )
       .join("\n\n---\n\n");
+
+    return {
+      content: [{ type: "text", text: formatted }],
+    };
+  }
+);
+
+// --- Herramienta: search_memories_compact ---
+
+server.tool(
+  "search_memories_compact",
+  "Búsqueda semántica con salida reducida (snippet 150 chars). Ideal para consultas rápidas sin saturar el context window.",
+  {
+    query: z.string().describe("Texto de búsqueda en lenguaje natural"),
+    limit: z.number().int().min(1).max(20).optional().default(5)
+      .describe("Número máximo de resultados (default: 5)"),
+    ...memoryFiltersSchema,
+  },
+  async (args) => {
+    const results = await searchMemoriesCompact(args.query, {
+      limit: args.limit,
+      ...normalizeFilters(args),
+    });
+
+    if (results.length === 0) {
+      return {
+        content: [{ type: "text", text: `Sin resultados para: "${args.query}"` }],
+      };
+    }
+
+    const formatted = results
+      .map((r, i) =>
+        `[${i + 1}] ${r.public_id || r.id} | score:${r.score} | ${r.memory_type || r.source_type} | ${r.project || "-"}\n${r.snippet}`
+      )
+      .join("\n---\n");
+
+    return {
+      content: [{ type: "text", text: formatted }],
+    };
+  }
+);
+
+// --- Herramienta: get_memories ---
+
+server.tool(
+  "get_memories",
+  "Recupera memorias completas por lista de IDs o public_ids (VM-000123). Útil para expandir resultados de search_memories_compact.",
+  {
+    ids: z.array(z.string()).min(1).max(20)
+      .describe("Lista de IDs o public_ids (VM-XXXXXX) a recuperar"),
+  },
+  async ({ ids }) => {
+    const results = await getMemories(ids);
+
+    if (results.length === 0) {
+      return {
+        content: [{ type: "text", text: "No se encontraron memorias para los IDs indicados." }],
+      };
+    }
+
+    const formatted = results
+      .map((r) =>
+        `[${r.public_id || r.id}] ${r.memory_type || r.source_type} | ${r.project || "-"} | ${formatDate(r.created_at)}\n${r.content}`
+      )
+      .join("\n\n---\n\n");
+
+    return {
+      content: [{ type: "text", text: formatted }],
+    };
+  }
+);
+
+// --- Herramienta: memory_timeline ---
+
+server.tool(
+  "memory_timeline",
+  "Historial cronológico de memorias agrupado por fecha. Útil para revisar qué se trabajó en un período.",
+  {
+    limit: z.number().int().min(1).max(200).optional().default(50)
+      .describe("Máximo de memorias a incluir (default: 50)"),
+    from: z.string().optional().describe("Fecha inicio ISO (YYYY-MM-DD)"),
+    to:   z.string().optional().describe("Fecha fin ISO (YYYY-MM-DD)"),
+    ...memoryFiltersSchema,
+  },
+  async (args) => {
+    const groups = await memoryTimeline({
+      limit: args.limit,
+      from: args.from || null,
+      to:   args.to   || null,
+      ...normalizeFilters(args),
+    });
+
+    if (groups.length === 0) {
+      return {
+        content: [{ type: "text", text: "Sin memorias en el período indicado." }],
+      };
+    }
+
+    const formatted = groups
+      .map(({ date, count, memories }) => {
+        const items = memories
+          .map((m) => `  • [${m.public_id || m.id}] ${m.memory_type || m.source_type} | ${m.project || "-"} | ${m.snippet}`)
+          .join("\n");
+        return `## ${date} (${count})\n${items}`;
+      })
+      .join("\n\n");
 
     return {
       content: [{ type: "text", text: formatted }],

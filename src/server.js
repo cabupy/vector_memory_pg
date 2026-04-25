@@ -12,7 +12,7 @@ import { resolve, join, dirname } from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { initDb, getStats, getSanitizationLog } from "./db.js";
-import { searchMemories, recentMemories, saveSessionSummary } from "./query.js";
+import { searchMemories, recentMemories, saveSessionSummary, searchMemoriesCompact, getMemories, memoryTimeline } from "./query.js";
 import pool from "./db.js";
 import { getDeniedIngestReason } from "./security.js";
 import { applyContentPolicy } from "./content-policy.js";
@@ -139,6 +139,44 @@ async function handleRequest(req, res) {
       const rows = await getSanitizationLog({ limit, filePath });
       res.writeHead(200);
       return res.end(JSON.stringify({ count: rows.length, results: rows }));
+    }
+
+    // GET /query/compact?q=<texto>&limit=5  — salida reducida para context window
+    if (path === "/query/compact" && req.method === "GET") {
+      const q = url.searchParams.get("q");
+      if (!q) {
+        res.writeHead(400);
+        return res.end(JSON.stringify({ error: "Parámetro 'q' requerido" }));
+      }
+      const limit = parseInt(url.searchParams.get("limit") || "5");
+      const filters = readFilters(url.searchParams);
+      const results = await searchMemoriesCompact(q, { limit, ...filters });
+      res.writeHead(200);
+      return res.end(JSON.stringify({ query: q, count: results.length, results }));
+    }
+
+    // GET /memories?ids=id1,id2,id3  — fetch por IDs o public_ids
+    if (path === "/memories" && req.method === "GET") {
+      const idsParam = url.searchParams.get("ids");
+      if (!idsParam) {
+        res.writeHead(400);
+        return res.end(JSON.stringify({ error: "Parámetro 'ids' requerido (separados por coma)" }));
+      }
+      const ids = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      const results = await getMemories(ids);
+      res.writeHead(200);
+      return res.end(JSON.stringify({ count: results.length, results }));
+    }
+
+    // GET /timeline?project=<p>&limit=50&from=2026-01-01&to=2026-12-31
+    if (path === "/timeline" && req.method === "GET") {
+      const limit = parseInt(url.searchParams.get("limit") || "50");
+      const from  = url.searchParams.get("from") || null;
+      const to    = url.searchParams.get("to")   || null;
+      const filters = readFilters(url.searchParams);
+      const groups = await memoryTimeline({ limit, from, to, ...filters });
+      res.writeHead(200);
+      return res.end(JSON.stringify({ days: groups.length, timeline: groups }));
     }
 
     // POST /ingest
@@ -357,6 +395,9 @@ async function start() {
     console.log(`[Server] Escuchando en http://${HOST}:${PORT}`);
     console.log(`[Server] Endpoints:`);
     console.log(`  GET  /query?q=<texto>&limit=5&types=session,daily`);
+    console.log(`  GET  /query/compact?q=<texto>&limit=5`);
+    console.log(`  GET  /memories?ids=id1,id2,id3`);
+    console.log(`  GET  /timeline?project=<p>&limit=50&from=YYYY-MM-DD`);
     console.log(`  GET  /recent?limit=5&types=session`);
     console.log(`  GET  /stats`);
     console.log(`  POST /ingest { "path": "<archivo>", "type": "session" }`);
