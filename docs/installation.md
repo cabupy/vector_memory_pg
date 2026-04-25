@@ -4,7 +4,7 @@
 
 | Dependencia | Version minima |
 |---|---|
-| Node.js | 18+ |
+| Node.js | 22+ |
 | PostgreSQL | 16+ |
 | pgvector | 0.7+ (compilado para tu version de PG) |
 | OpenAI API key | acceso a `text-embedding-3-small` |

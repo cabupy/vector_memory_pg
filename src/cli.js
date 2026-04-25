@@ -2,10 +2,6 @@
 // cli.js — vector-memory CLI
 // Comandos: init-project | doctor | ingest | search | quickstart | mcp-config | migrate | up | down
 
-// Suprimir el ExperimentalWarning de Fetch API en Node 18
-process.removeAllListeners('warning');
-process.on('warning', (w) => { if (w.name !== 'ExperimentalWarning') console.warn(w); });
-
 import { readFile, writeFile, stat, readdir, access } from 'fs/promises';
 import { existsSync } from 'fs';
 import { resolve, join, dirname } from 'path';
@@ -157,7 +153,7 @@ async function cmdDoctor() {
 
   // Node version
   const [major] = process.versions.node.split('.').map(Number);
-  checks.push({ ok: major >= 18, label: `Node.js v${process.versions.node}`, hint: 'Requiere Node.js 18+' });
+  checks.push({ ok: major >= 22, label: `Node.js v${process.versions.node}`, hint: 'Requiere Node.js 22+' });
 
   // Env vars
   checks.push({ ok: !!process.env.DATABASE_URL,   label: 'DATABASE_URL',   hint: 'Falta en .env' });
@@ -493,8 +489,8 @@ async function cmdQuickstart() {
 
   // 1. Node version
   const [major] = process.versions.node.split('.').map(Number);
-  if (major < 18) {
-    console.error(c.red(`  ✗ Node.js ${process.versions.node} — se requiere 18+\n`));
+  if (major < 22) {
+    console.error(c.red(`  ✗ Node.js ${process.versions.node} — se requiere 22+\n`));
     rl.close(); process.exit(1);
   }
   console.log(c.green(`  ✓ Node.js ${process.versions.node}`));
