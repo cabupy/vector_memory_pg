@@ -46,7 +46,7 @@ cp .env.example .env
 Editar `.env`:
 
 ```env
-DATABASE_URL=postgresql://usuario:password@localhost:5432/vector_memory_db
+DATABASE_URL=postgresql://usuario:password@localhost:5433/vector_memory_db
 OPENAI_API_KEY=sk-...
 ```
 

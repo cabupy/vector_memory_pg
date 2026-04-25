@@ -1742,7 +1742,7 @@ vector-memory mcp-config
       "command": "vector-memory",
       "args": ["mcp"],
       "env": {
-        "DATABASE_URL": "postgres://vector:vector@localhost:5432/vector_memory",
+        "DATABASE_URL": "postgres://vector:vector@localhost:5433/vector_memory",
         "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
       }
     }

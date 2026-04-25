@@ -441,7 +441,7 @@ async function cmdMcpConfig(flags) {
     cmd = execSync('which vector-memory', { stdio: ['pipe', 'pipe', 'pipe'] }).toString().trim();
   } catch { /* usar el nombre global */ }
 
-  const dbUrl  = process.env.DATABASE_URL  || 'postgres://vector:vector@localhost:5432/vector_memory';
+  const dbUrl  = process.env.DATABASE_URL  || 'postgres://vector:vector@localhost:5433/vector_memory';
   const apiKey = process.env.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY';
 
   const config = {
@@ -506,7 +506,7 @@ async function cmdQuickstart() {
     if (create.toLowerCase().startsWith('s')) {
       let template = '# vector-memory-pg\n';
       try { template = await readFile(envExamplePath, 'utf-8'); } catch { /* sin template */ }
-      const dbUrl  = await ask('DATABASE_URL', 'postgres://vector:vector@localhost:5432/vector_memory');
+      const dbUrl  = await ask('DATABASE_URL', 'postgres://vector:vector@localhost:5433/vector_memory');
       const apiKey = await ask('OPENAI_API_KEY', '');
       const content = template
         .replace(/^DATABASE_URL=.*/m,   `DATABASE_URL=${dbUrl}`)
