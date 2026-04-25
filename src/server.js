@@ -2,13 +2,14 @@
 // Fiel al artículo: solo escucha en localhost, sin auth.
 // Endpoints: GET /query, GET /recent, GET /stats, POST /ingest
 //            POST /events/session-start, POST /events/post-tool-use, POST /events/session-end
+//            GET /ui — interfaz web local (archivos estáticos en src/ui/)
 
 import { createServer } from "http";
 import { URL } from "url";
 import { execFileSync } from "child_process";
 import { readFile } from "fs/promises";
 import { existsSync } from "fs";
-import { resolve, join, dirname } from "path";
+import { resolve, join, dirname, extname } from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { initDb, getStats, getSanitizationLog } from "./db.js";
@@ -85,6 +86,47 @@ async function readBody(req) {
   let body = "";
   for await (const chunk of req) body += chunk;
   return JSON.parse(body || "{}");
+}
+
+// ─── Static file serving (src/ui/) ───────────────────────────────────────────
+
+const UI_DIR = join(__dirname, "ui");
+
+const MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".css":  "text/css; charset=utf-8",
+  ".js":   "text/javascript; charset=utf-8",
+  ".png":  "image/png",
+  ".svg":  "image/svg+xml",
+  ".ico":  "image/x-icon",
+};
+
+async function serveStatic(req, res, urlPath) {
+  // GET /ui  →  redirect to /ui/
+  if (urlPath === "/ui") {
+    res.writeHead(301, { Location: "/ui/" });
+    return res.end();
+  }
+
+  // Normalise: /ui/ → index.html, /ui/style.css → style.css
+  const relative = urlPath.replace(/^\/ui\/?/, "") || "index.html";
+
+  // Path traversal guard
+  const abs = resolve(UI_DIR, relative);
+  if (!abs.startsWith(UI_DIR)) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Forbidden" }));
+  }
+
+  try {
+    const data = await readFile(abs);
+    const mime = MIME[extname(abs)] || "application/octet-stream";
+    res.writeHead(200, { "Content-Type": mime });
+    return res.end(data);
+  } catch {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ error: "Not found" }));
+  }
 }
 
 // ─── Manejador principal ───────────────────────────────────────────────────────
@@ -371,6 +413,11 @@ async function handleRequest(req, res) {
       return res.end(JSON.stringify({ count: sessions.length, sessions }));
     }
 
+    // GET /ui  — interfaz web local
+    if (path === "/ui" || path.startsWith("/ui/")) {
+      return serveStatic(req, res, path);
+    }
+
     // 404
     res.writeHead(404);
     res.end(JSON.stringify({ error: "Not found" }));
@@ -401,6 +448,7 @@ async function start() {
     console.log(`  POST /events/post-tool-use { "session_id": "...", "tool_name": "...", "observation": "..." }`);
     console.log(`  POST /events/session-end   { "session_id": "...", "summary": "..." }`);
     console.log(`  GET  /events/sessions`);
+    console.log(`  GET  /ui  — interfaz web local`);
   });
 
   process.on("SIGINT", async () => {

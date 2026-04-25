@@ -5,6 +5,24 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.0] - 2026-04-25
+
+### Agregado
+- `src/ui/` — interfaz web local embebida (dark theme, vanilla JS, sin dependencias frontend):
+  - **Search**: búsqueda semántica con filtros de status, tipo y límite; cards con public_id, score, badges de criticidad y estado
+  - **Recientes**: últimas N memorias ordenadas por fecha, con botón de actualización
+  - **Timeline**: historial agrupado por día con rango de fechas configurable
+  - **Stats**: totales, tamaño de DB y distribución visual por tipo de memoria
+- `GET /ui` y `GET /ui/*` en `server.js` — sirve archivos estáticos de `src/ui/` con MIME types correctos y protección contra path traversal
+- Accesible en `http://localhost:3010/ui` al correr `vector-memory worker`
+- Atajo de teclado `/` para enfocar el campo de búsqueda desde cualquier vista
+
+### Cambiado
+- `server.js`: importa `extname` de `path`; agrega helper `serveStatic()` y bloque de despacho para rutas `/ui`
+- `.npmignore`: comentario explícito para recordar que `src/ui/` debe incluirse en el paquete npm
+
+---
+
 ## [1.8.0] - 2026-04-25
 
 ### Agregado

@@ -27,3 +27,7 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# src/ui/ se incluye explicitamente en el paquete (interfaz web local)
+# NO agregar src/ui/ a esta lista
+

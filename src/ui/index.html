@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>vector-memory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/ui/style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Navbar ── -->
+  <nav>
+    <span class="nav-logo">vector<span>-memory</span></span>
+
+    <button class="nav-tab active" data-view="search">Buscar</button>
+    <button class="nav-tab" data-view="recent">Recientes</button>
+    <button class="nav-tab" data-view="timeline">Timeline</button>
+    <button class="nav-tab" data-view="stats">Stats</button>
+
+    <span class="nav-spacer"></span>
+    <span id="stats-pill">cargando…</span>
+  </nav>
+
+  <!-- ── Main ── -->
+  <main>
+
+    <!-- ── View: Search ── -->
+    <section id="view-search" class="view active">
+      <div class="search-bar">
+        <input id="search-input" type="text" placeholder="Buscar memorias técnicas… (/ para enfocar)" autocomplete="off" />
+        <button id="search-btn" class="btn btn-primary">Buscar</button>
+      </div>
+
+      <div class="filters">
+        <select id="search-status">
+          <option value="">Todos los estados</option>
+          <option value="active">active</option>
+          <option value="deprecated">deprecated</option>
+          <option value="superseded">superseded</option>
+          <option value="archived">archived</option>
+        </select>
+
+        <select id="search-type">
+          <option value="">Todos los tipos</option>
+          <option value="decision">decision</option>
+          <option value="bug">bug</option>
+          <option value="architecture">architecture</option>
+          <option value="pattern">pattern</option>
+          <option value="constraint">constraint</option>
+          <option value="security">security</option>
+          <option value="session_summary">session_summary</option>
+        </select>
+
+        <select id="search-limit">
+          <option value="10">10 resultados</option>
+          <option value="20">20 resultados</option>
+          <option value="50">50 resultados</option>
+        </select>
+      </div>
+
+      <div id="search-results">
+        <div class="empty">
+          <b>Listo para buscar</b>
+          Escribe una consulta en lenguaje natural y presiona Buscar.
+        </div>
+      </div>
+    </section>
+
+    <!-- ── View: Recent ── -->
+    <section id="view-recent" class="view">
+      <div class="search-bar">
+        <select id="recent-limit" style="width:160px">
+          <option value="20">20 recientes</option>
+          <option value="50">50 recientes</option>
+          <option value="100">100 recientes</option>
+        </select>
+        <button id="recent-refresh" class="btn btn-ghost">Actualizar</button>
+      </div>
+      <div id="recent-results"><div class="spinner"></div></div>
+    </section>
+
+    <!-- ── View: Timeline ── -->
+    <section id="view-timeline" class="view">
+      <div class="search-bar">
+        <input id="timeline-from" type="date" style="width:150px; padding:8px 10px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:var(--radius); outline:none" />
+        <input id="timeline-to"   type="date" style="width:150px; padding:8px 10px; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:var(--radius); outline:none" />
+        <select id="timeline-limit" style="width:160px">
+          <option value="100">100 memorias</option>
+          <option value="250">250 memorias</option>
+          <option value="500">500 memorias</option>
+        </select>
+        <button id="timeline-refresh" class="btn btn-ghost">Cargar</button>
+      </div>
+      <div id="timeline-results"><div class="empty"><b>Selecciona un rango</b>Ajusta las fechas y presiona Cargar.</div></div>
+    </section>
+
+    <!-- ── View: Stats ── -->
+    <section id="view-stats" class="view">
+      <div class="search-bar">
+        <button id="stats-refresh" class="btn btn-ghost">Actualizar stats</button>
+      </div>
+      <div id="stats-content"><div class="spinner"></div></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script src="/ui/app.js"></script>
+</body>
+</html>
