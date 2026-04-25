@@ -11,6 +11,7 @@ import { readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { resolve, join, dirname, extname } from "path";
 import { fileURLToPath } from "url";
+import { homedir } from "os";
 import dotenv from "dotenv";
 import { initDb, getStats, getSanitizationLog } from "./db.js";
 import { searchMemories, recentMemories, saveSessionSummary, searchMemoriesCompact, getMemories, memoryTimeline } from "./query.js";
@@ -18,6 +19,7 @@ import pool from "./db.js";
 import { getDeniedIngestReason } from "./security.js";
 import { applyContentPolicy } from "./content-policy.js";
 
+dotenv.config({ path: join(homedir(), ".vector-memory.env") });
 dotenv.config();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

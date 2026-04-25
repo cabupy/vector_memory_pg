@@ -5,6 +5,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.1] - 2026-04-25
+
+### Corregido / Mejorado
+- **Aislamiento de base de datos**: `vector-memory worker` ya no usará la DB de otro proyecto si se corre desde un directorio con su propio `.env`
+- Nueva var dedicada `VECTOR_MEMORY_DATABASE_URL` con prioridad sobre `DATABASE_URL` genérico
+- Nueva config global de usuario `~/.vector-memory.env` — se carga antes que el `.env` del CWD; setear aquí la URL garantiza que funcione desde cualquier directorio
+- Orden de carga en todos los entry points: `shell env` > `~/.vector-memory.env` > `.env del CWD` > `.env del paquete`
+- `src/load-env.js` — helper centralizado que exporta `getDatabaseUrl()`
+- `mcp-config` genera config con `VECTOR_MEMORY_DATABASE_URL` en lugar de `DATABASE_URL`
+- `doctor` reporta `VECTOR_MEMORY_DATABASE_URL` y avisa si está usando `DATABASE_URL` como fallback
+- `.env.example` actualizado para promover `VECTOR_MEMORY_DATABASE_URL` como opción principal
+
+### Retrocompatibilidad
+- `DATABASE_URL` sigue funcionando como fallback — setups existentes no se rompen
+
+---
+
 ## [1.9.0] - 2026-04-25
 
 ### Agregado

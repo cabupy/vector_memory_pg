@@ -6,14 +6,25 @@ import pg from "pg";
 import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { homedir } from "os";
 import dotenv from "dotenv";
 
+// Orden de carga (sin override — el primero en setear gana):
+// 1. ~/.vector-memory.env  — config global del usuario, nunca es de otro proyecto
+// 2. .env del CWD          — puede ser de otro proyecto; solo aplica si no hay global
+dotenv.config({ path: join(homedir(), ".vector-memory.env") });
 dotenv.config();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// VECTOR_MEMORY_DATABASE_URL tiene prioridad absoluta sobre DATABASE_URL genérico.
+// Permite que vector-memory coexista con otros proyectos que también usen DATABASE_URL.
+const connectionString =
+  process.env.VECTOR_MEMORY_DATABASE_URL ||
+  process.env.DATABASE_URL;
+
 const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   max: 10,
   idleTimeoutMillis: 30000,
 });

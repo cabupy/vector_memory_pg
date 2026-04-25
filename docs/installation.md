@@ -46,9 +46,17 @@ cp .env.example .env
 Editar `.env`:
 
 ```env
-DATABASE_URL=postgresql://usuario:password@localhost:5433/vector_memory_db
+# Recomendado: var dedicada que no colisiona con otros proyectos
+VECTOR_MEMORY_DATABASE_URL=postgresql://usuario:password@localhost:5433/vector_memory_db
 OPENAI_API_KEY=sk-...
 ```
+
+> **¿Por qué `VECTOR_MEMORY_DATABASE_URL`?**
+> Si corres `vector-memory worker` desde un directorio con su propio `.env`
+> (un proyecto diferente), ese archivo puede tener un `DATABASE_URL` apuntando
+> a otra base de datos. La var dedicada evita esa colisión.
+> También puedes setearla globalmente en `~/.vector-memory.env` y no preocuparte
+> más: vector-memory siempre la encontrará independientemente del directorio.
 
 ## Crear el schema
 

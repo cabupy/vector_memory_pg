@@ -5,9 +5,12 @@
 // Env:   INGEST_SECRET_MODE=block|redact (default: block)
 
 import { readFile, stat } from "fs/promises";
-import { basename, extname } from "path";
+import { basename, extname, join } from "path";
 import { randomUUID } from "crypto";
+import { homedir } from "os";
 import dotenv from "dotenv";
+dotenv.config({ path: join(homedir(), ".vector-memory.env") });
+dotenv.config();
 import {
   initDb,
   insertMemory,
@@ -20,8 +23,6 @@ import { embedBatch } from "./embeddings.js";
 import { chunkSession, chunkMarkdown, estimateTokens } from "./chunker.js";
 import pool from "./db.js";
 import { getDeniedIngestReason, applySecretPolicy } from "./security.js";
-
-dotenv.config();
 
 function parseTags(value) {
   if (!value) return [];

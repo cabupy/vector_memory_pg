@@ -1,5 +1,9 @@
 // setup-db.js — Inicializa PostgreSQL con el schema
+import { join } from "path";
+import { homedir } from "os";
 import dotenv from "dotenv";
+dotenv.config({ path: join(homedir(), ".vector-memory.env") });
+dotenv.config();
 import { initDb } from "./db.js";
 import pool from "./db.js";
 

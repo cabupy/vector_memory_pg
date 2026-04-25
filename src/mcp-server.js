@@ -7,10 +7,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
-import { dirname, resolve } from "path";
+import { dirname, resolve, join } from "path";
+import { homedir } from "os";
 
-// Cargar .env desde la raíz del proyecto
+// Orden de prioridad: vars de shell > ~/.vector-memory.env > .env del paquete
 const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: join(homedir(), ".vector-memory.env") });
 dotenv.config({ path: resolve(__dirname, "../.env") });
 
 import { initDb, getStats } from "./db.js";

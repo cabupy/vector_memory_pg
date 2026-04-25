@@ -8,12 +8,18 @@ import { resolve, join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { execSync, spawn } from 'child_process';
 import { createInterface } from 'readline';
+import { homedir } from 'os';
 import dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 
-// Cargar .env: primero desde CWD (proyecto del usuario), luego desde install dir como fallback
+// Orden de carga (el primero en setear una var gana):
+// 1. Shell / process.env ya seteado
+// 2. ~/.vector-memory.env — config global, independiente del proyecto actual
+// 3. .env del CWD         — puede ser de otro proyecto
+// 4. .env del paquete     — fallback de instalación
+dotenv.config({ path: join(homedir(), '.vector-memory.env') });
 dotenv.config();
 dotenv.config({ path: resolve(__dirname, '..', '.env') });
 
@@ -156,7 +162,14 @@ async function cmdDoctor() {
   checks.push({ ok: major >= 22, label: `Node.js v${process.versions.node}`, hint: 'Requiere Node.js 22+' });
 
   // Env vars
-  checks.push({ ok: !!process.env.DATABASE_URL,   label: 'DATABASE_URL',   hint: 'Falta en .env' });
+  const dbUrl = process.env.VECTOR_MEMORY_DATABASE_URL || process.env.DATABASE_URL;
+  checks.push({
+    ok:    !!dbUrl,
+    label: 'VECTOR_MEMORY_DATABASE_URL',
+    hint:  process.env.DATABASE_URL
+      ? 'Usando DATABASE_URL como fallback (recomendado: setear VECTOR_MEMORY_DATABASE_URL)'
+      : 'Falta en ~/.vector-memory.env o en el entorno',
+  });
   checks.push({ ok: !!process.env.OPENAI_API_KEY, label: 'OPENAI_API_KEY', hint: 'Falta en .env' });
 
   // Config file
@@ -169,10 +182,10 @@ async function cmdDoctor() {
   });
 
   // DB + pgvector + tabla
-  if (process.env.DATABASE_URL) {
+  if (dbUrl) {
     try {
       const pg = await import('pg');
-      const client = new pg.default.Client({ connectionString: process.env.DATABASE_URL });
+      const client = new pg.default.Client({ connectionString: dbUrl });
       await client.connect();
 
       checks.push({ ok: true, label: 'PostgreSQL conexion' });
@@ -398,8 +411,8 @@ async function cmdSearch({ positional, flags }) {
 // ─── COMMAND: migrate ─────────────────────────────────────────────────────────
 async function cmdMigrate() {
   console.log(c.bold('\nvector-memory migrate\n'));
-  if (!process.env.DATABASE_URL) {
-    console.error(c.red('  DATABASE_URL no está configurado. Revisa tu .env.\n'));
+  if (!process.env.VECTOR_MEMORY_DATABASE_URL && !process.env.DATABASE_URL) {
+    console.error(c.red('  DATABASE_URL (o VECTOR_MEMORY_DATABASE_URL) no está configurado. Revisa tu .env.\n'));
     process.exit(1);
   }
   const ok = await spawnNode([join(__dirname, 'setup-db.js')]);
@@ -441,7 +454,7 @@ async function cmdMcpConfig(flags) {
     cmd = execSync('which vector-memory', { stdio: ['pipe', 'pipe', 'pipe'] }).toString().trim();
   } catch { /* usar el nombre global */ }
 
-  const dbUrl  = process.env.DATABASE_URL  || 'postgres://vector:vector@localhost:5433/vector_memory';
+  const dbUrl  = process.env.VECTOR_MEMORY_DATABASE_URL || process.env.DATABASE_URL || 'postgres://vector:vector@localhost:5433/vector_memory';
   const apiKey = process.env.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY';
 
   const config = {
@@ -450,8 +463,8 @@ async function cmdMcpConfig(flags) {
         command: cmd,
         args: ['mcp'],
         env: {
-          DATABASE_URL:    dbUrl,
-          OPENAI_API_KEY:  apiKey,
+          VECTOR_MEMORY_DATABASE_URL: dbUrl,
+          OPENAI_API_KEY:             apiKey,
         },
       },
     },
@@ -506,11 +519,12 @@ async function cmdQuickstart() {
     if (create.toLowerCase().startsWith('s')) {
       let template = '# vector-memory-pg\n';
       try { template = await readFile(envExamplePath, 'utf-8'); } catch { /* sin template */ }
-      const dbUrl  = await ask('DATABASE_URL', 'postgres://vector:vector@localhost:5433/vector_memory');
+      const dbUrl  = await ask('VECTOR_MEMORY_DATABASE_URL', 'postgres://vector:vector@localhost:5433/vector_memory');
       const apiKey = await ask('OPENAI_API_KEY', '');
       const content = template
-        .replace(/^DATABASE_URL=.*/m,   `DATABASE_URL=${dbUrl}`)
-        .replace(/^OPENAI_API_KEY=.*/m, `OPENAI_API_KEY=${apiKey}`);
+        .replace(/^VECTOR_MEMORY_DATABASE_URL=.*/m, `VECTOR_MEMORY_DATABASE_URL=${dbUrl}`)
+        .replace(/^DATABASE_URL=.*/m,               `DATABASE_URL=${dbUrl}`)
+        .replace(/^OPENAI_API_KEY=.*/m,             `OPENAI_API_KEY=${apiKey}`);
       await writeFile(envPath, content);
       dotenv.config({ path: envPath });
       console.log(c.green('  ✓ .env creado'));
@@ -522,8 +536,8 @@ async function cmdQuickstart() {
   }
 
   // 3. Vars requeridas
-  if (!process.env.DATABASE_URL) {
-    console.error(c.red('  ✗ DATABASE_URL no configurado en .env\n'));
+  if (!process.env.VECTOR_MEMORY_DATABASE_URL && !process.env.DATABASE_URL) {
+    console.error(c.red('  ✗ VECTOR_MEMORY_DATABASE_URL (o DATABASE_URL) no configurado\n'));
     rl.close(); process.exit(1);
   }
   if (!process.env.OPENAI_API_KEY) {
@@ -536,7 +550,7 @@ async function cmdQuickstart() {
   if (migOk) {
     console.log(c.green('  ✓ Schema listo'));
   } else {
-    console.error(c.red('  ✗ Error al aplicar schema — verifica DATABASE_URL y que PostgreSQL esté corriendo'));
+    console.error(c.red('  ✗ Error al aplicar schema — verifica VECTOR_MEMORY_DATABASE_URL y que PostgreSQL esté corriendo'));
     rl.close(); process.exit(1);
   }
 
