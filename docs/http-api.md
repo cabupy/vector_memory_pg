@@ -5,8 +5,31 @@ El servidor HTTP corre por defecto en `http://localhost:3010`.
 Arrancar:
 
 ```bash
-npm run server
+vector-memory worker
+# o para abrir la UI en browser al iniciar:
+vector-memory worker --open
 ```
+
+---
+
+## GET /ui — Interfaz web local
+
+Abre la UI web en el browser para explorar memorias sin necesidad de curl.
+
+```
+http://localhost:3010/ui
+```
+
+Vistas disponibles:
+
+| Vista | Descripcion |
+|---|---|
+| Search | Busqueda semantica con filtros |
+| Recientes | Ultimas memorias guardadas |
+| Timeline | Historial cronologico por proyecto o periodo |
+| Stats | Conteos globales por tipo, status y criticidad |
+
+Los archivos estaticos (`index.html`, `style.css`, `app.js`) se sirven desde `src/ui/` dentro del paquete. No requieren servidor externo ni dependencias frontend.
 
 ---
 
@@ -185,3 +208,39 @@ Acciones posibles:
 | `blocked_path` | Archivo bloqueado por denylist de paths |
 | `blocked_content` | Archivo bloqueado por secreto detectado en contenido |
 | `redacted` | Secreto detectado y redactado antes de guardar |
+
+---
+
+## Session events
+
+Endpoints para integrar agentes con el ciclo de vida de la sesion.
+
+### POST /events/session-start
+
+Recibe contexto relevante automaticamente al inicio de sesion.
+
+```bash
+curl -X POST http://localhost:3010/events/session-start \
+  -H "Content-Type: application/json" \
+  -d '{ "session_id": "abc123", "project": "mi-proyecto" }'
+```
+
+### POST /events/post-tool-use
+
+Observacion despues de un tool-use. Con `auto_save: true` guarda la observacion como memoria si es relevante.
+
+```bash
+curl -X POST http://localhost:3010/events/post-tool-use \
+  -H "Content-Type: application/json" \
+  -d '{ "session_id": "abc123", "tool_name": "Bash", "observation": "...", "auto_save": true }'
+```
+
+### POST /events/session-end
+
+Guarda el resumen de la sesion al terminar.
+
+```bash
+curl -X POST http://localhost:3010/events/session-end \
+  -H "Content-Type: application/json" \
+  -d '{ "session_id": "abc123", "summary": "Se completo X, decision sobre Y, pendiente Z." }'
+```

@@ -154,3 +154,43 @@ Pendiente:
 - Revisar comportamiento con archivos > 1MB.
 - Agregar soporte para chunking de TypeScript.
 ```
+
+---
+
+## Reglas de release (para agentes que mantienen este proyecto)
+
+Cada vez que se sube una versión, los tres destinos deben quedar sincronizados
+en el mismo acto. **Nunca dejar uno sin actualizar.**
+
+### Checklist obligatorio al hacer release
+
+```bash
+# 1. Verificar sintaxis de todos los archivos JS modificados
+node --check src/archivo.js
+
+# 2. Actualizar version en package.json y agregar entrada en CHANGELOG.md
+
+# 3. Commit
+git add .
+git commit -m "feat|fix|docs: descripción (vX.Y.Z)"
+
+# 4. Push de commits
+git push
+
+# 5. Tag apuntando al commit exacto de esa versión + push del tag
+git tag vX.Y.Z <commit-hash>
+git push origin vX.Y.Z
+
+# 6. GitHub Release con notas del CHANGELOG
+gh release create vX.Y.Z --title "vX.Y.Z — título" --notes "..."
+
+# 7. npm publish
+npm publish
+```
+
+### Reglas
+- El tag debe apuntar al commit **exacto** de esa versión, no al HEAD si ya hubo más commits después.
+- El GitHub Release debe existir para cada versión publicada en npm.
+- `npm publish` solo después de que el tag y el release estén en GitHub.
+- `latest` en npm siempre debe coincidir con el último GitHub Release.
+- Si el release es solo docs (README, CHANGELOG), igual se publica en npm para que la página del paquete quede actualizada.

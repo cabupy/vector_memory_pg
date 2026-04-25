@@ -5,16 +5,41 @@ El CLI `vector-memory` permite gestionar la memoria desde la terminal, integrars
 ## Instalacion
 
 ```bash
-npm link
+npm install -g vector-memory-pg
 ```
-
-Esto registra el binario `vector-memory` globalmente en tu PATH.
 
 Verificar:
 
 ```bash
 vector-memory
 ```
+
+Para desarrollo local (desde el repo):
+
+```bash
+npm link
+```
+
+---
+
+## worker
+
+Levanta el servidor HTTP + MCP en `http://localhost:3010`.
+
+```bash
+vector-memory worker
+```
+
+Abre la UI web en el browser al iniciar:
+
+```bash
+vector-memory worker --open
+```
+
+El servidor expone:
+- HTTP API en `http://localhost:3010`
+- UI web en `http://localhost:3010/ui`
+- MCP sobre stdio (via `mcp-config`)
 
 ---
 
@@ -72,8 +97,8 @@ vector-memory doctor
 
 Checks:
 
-- Node.js >= 18
-- `DATABASE_URL` en entorno
+- Node.js >= 22
+- `VECTOR_MEMORY_DATABASE_URL` o `DATABASE_URL` en entorno
 - `OPENAI_API_KEY` en entorno
 - `.vector-memory.json` presente (busca hacia arriba en el arbol de directorios)
 - Conexion a PostgreSQL
@@ -150,6 +175,7 @@ vector-memory init-project       # detecta repo y org desde git remote
 vector-memory doctor             # verifica todo
 vector-memory ingest             # ingesta README.md y docs/
 vector-memory search "auth"      # busca memorias relevantes
+vector-memory worker --open      # levanta server y abre UI en browser
 ```
 
 ---
