@@ -1,6 +1,6 @@
 {
   "name": "vector-memory-pg",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Persistent semantic memory for AI coding agents, powered by PostgreSQL + pgvector, OpenAI embeddings, HTTP API, and MCP server support.",
   "type": "module",
   "license": "MIT",
@@ -40,7 +40,10 @@
     "server": "node src/server.js",
     "query": "node src/query.js",
     "mcp": "node src/mcp-server.js",
-    "cli": "node src/cli.js"
+    "cli": "node src/cli.js",
+    "up": "docker compose up -d",
+    "down": "docker compose down",
+    "up:full": "docker compose --profile full up -d"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",

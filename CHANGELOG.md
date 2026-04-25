@@ -5,6 +5,26 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.6.0] - 2026-04-25
+
+### Agregado
+- `docker-compose.yml` con PostgreSQL 17 + pgvector (`pgvector/pgvector:pg17`), healthcheck, schema auto-init y servicio `api` en profile `full`
+- `Dockerfile` para el servicio HTTP API (Node.js 18 Alpine)
+- `.dockerignore` para imagen limpia
+- CLI `vector-memory quickstart` — configuración guiada desde cero: crea `.env`, aplica migraciones, detecta repo git, muestra config MCP, ejecuta doctor
+- CLI `vector-memory migrate` — aplica `schema.sql` contra la DB configurada
+- CLI `vector-memory mcp-config [--target]` — genera snippet de config MCP para claude-code, opencode, cursor, openclaw
+- CLI `vector-memory up / down` — wrappers de `docker compose up/down`
+- Scripts npm `up`, `down`, `up:full` en `package.json`
+- `.env.example` actualizado con DATABASE_URL de Docker y variables opcionales de Compose
+
+### Cambiado
+- `public_id` (`VM-000001`) agregado al schema con secuencia PostgreSQL, backfill idempotente e índice único
+- `search` CLI ahora muestra `public_id` al inicio de cada resultado
+- `init-project` auto-detecta `AGENTS.md`, `README.md` y `docs/` como candidatos de ingesta
+
+---
+
 ## [1.5.0] - 2026-04-24
 
 ### Agregado

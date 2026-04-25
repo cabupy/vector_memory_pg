@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // cli.js — vector-memory CLI
-// Comandos: init-project | doctor | ingest [path...] | search <query>
+// Comandos: init-project | doctor | ingest | search | quickstart | mcp-config | migrate | up | down
 
 // Suprimir el ExperimentalWarning de Fetch API en Node 18
 process.removeAllListeners('warning');
 process.on('warning', (w) => { if (w.name !== 'ExperimentalWarning') console.warn(w); });
 
-import { readFile, writeFile, stat, readdir } from 'fs/promises';
+import { readFile, writeFile, stat, readdir, access } from 'fs/promises';
 import { existsSync } from 'fs';
 import { resolve, join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -399,14 +399,195 @@ async function cmdSearch({ positional, flags }) {
   }
 }
 
+// ─── COMMAND: migrate ─────────────────────────────────────────────────────────
+async function cmdMigrate() {
+  console.log(c.bold('\nvector-memory migrate\n'));
+  if (!process.env.DATABASE_URL) {
+    console.error(c.red('  DATABASE_URL no está configurado. Revisa tu .env.\n'));
+    process.exit(1);
+  }
+  const ok = await spawnNode([join(__dirname, 'setup-db.js')]);
+  if (ok) {
+    console.log(c.green('  ✓ Schema aplicado.\n'));
+  } else {
+    console.error(c.red('  ✗ Error al aplicar schema.\n'));
+    process.exit(1);
+  }
+}
+
+// ─── COMMAND: up / down ───────────────────────────────────────────────────────
+async function cmdDockerUp(flags) {
+  const composeFile = join(__dirname, '..', 'docker-compose.yml');
+  if (!existsSync(composeFile)) {
+    console.error(c.red('No se encontró docker-compose.yml.\n'));
+    process.exit(1);
+  }
+  const profile = flags.full ? '--profile full' : '';
+  const detach  = flags.detach !== false ? '-d' : '';
+  console.log(c.bold('\nvector-memory up\n'));
+  console.log(c.dim(`  docker compose up ${detach} ${profile}\n`));
+  execSync(`docker compose -f "${composeFile}" up ${detach} ${profile}`.trim(), { stdio: 'inherit' });
+}
+
+async function cmdDockerDown() {
+  const composeFile = join(__dirname, '..', 'docker-compose.yml');
+  console.log(c.bold('\nvector-memory down\n'));
+  execSync(`docker compose -f "${composeFile}" down`, { stdio: 'inherit' });
+}
+
+// ─── COMMAND: mcp-config ──────────────────────────────────────────────────────
+async function cmdMcpConfig(flags) {
+  const target = flags.target || 'generic';
+
+  // Resolver ruta del ejecutable
+  let cmd = 'vector-memory';
+  try {
+    cmd = execSync('which vector-memory', { stdio: ['pipe', 'pipe', 'pipe'] }).toString().trim();
+  } catch { /* usar el nombre global */ }
+
+  const dbUrl  = process.env.DATABASE_URL  || 'postgres://vector:vector@localhost:5432/vector_memory';
+  const apiKey = process.env.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY';
+
+  const config = {
+    mcpServers: {
+      'vector-memory-pg': {
+        command: cmd,
+        args: ['mcp'],
+        env: {
+          DATABASE_URL:    dbUrl,
+          OPENAI_API_KEY:  apiKey,
+        },
+      },
+    },
+  };
+
+  const json = JSON.stringify(config, null, 2);
+
+  const hints = {
+    'claude-code': '~/.claude/claude_desktop_config.json  (o usa: claude mcp add)',
+    'opencode':    '.opencode/config.json  →  clave "mcp"',
+    'cursor':      'Cursor Settings → MCP → Add server',
+    'openclaw':    'Configuración del agente OpenClaw → MCP servers',
+    'generic':     null,
+  };
+
+  console.log(c.bold('\nvector-memory mcp-config\n'));
+  if (hints[target]) {
+    console.log(c.dim(`  Target: ${target}`));
+    console.log(c.dim(`  Archivo: ${hints[target]}\n`));
+  }
+
+  console.log(json + '\n');
+}
+
+// ─── COMMAND: quickstart ──────────────────────────────────────────────────────
+async function cmdQuickstart() {
+  console.log(c.bold('\nvector-memory quickstart\n'));
+  console.log(c.dim('  Configuracion inicial paso a paso.\n'));
+
+  const rl  = createInterface({ input: process.stdin, output: process.stdout });
+  const ask = (q, def) => new Promise(res => {
+    const hint = def ? c.dim(` [${def}]`) : '';
+    rl.question(`  ${q}${hint}: `, ans => res(ans.trim() || def || ''));
+  });
+
+  // 1. Node version
+  const [major] = process.versions.node.split('.').map(Number);
+  if (major < 18) {
+    console.error(c.red(`  ✗ Node.js ${process.versions.node} — se requiere 18+\n`));
+    rl.close(); process.exit(1);
+  }
+  console.log(c.green(`  ✓ Node.js ${process.versions.node}`));
+
+  // 2. .env
+  const envPath = resolve(process.cwd(), '.env');
+  const envExamplePath = resolve(__dirname, '..', '.env.example');
+  let envExists = existsSync(envPath);
+
+  if (!envExists) {
+    console.log(c.yellow('\n  No se encontró .env en el directorio actual.'));
+    const create = await ask('¿Crear .env ahora?', 'si');
+    if (create.toLowerCase().startsWith('s')) {
+      let template = '# vector-memory-pg\n';
+      try { template = await readFile(envExamplePath, 'utf-8'); } catch { /* sin template */ }
+      const dbUrl  = await ask('DATABASE_URL', 'postgres://vector:vector@localhost:5432/vector_memory');
+      const apiKey = await ask('OPENAI_API_KEY', '');
+      const content = template
+        .replace(/^DATABASE_URL=.*/m,   `DATABASE_URL=${dbUrl}`)
+        .replace(/^OPENAI_API_KEY=.*/m, `OPENAI_API_KEY=${apiKey}`);
+      await writeFile(envPath, content);
+      dotenv.config({ path: envPath });
+      console.log(c.green('  ✓ .env creado'));
+      envExists = true;
+    }
+  } else {
+    dotenv.config({ path: envPath });
+    console.log(c.green('  ✓ .env encontrado'));
+  }
+
+  // 3. Vars requeridas
+  if (!process.env.DATABASE_URL) {
+    console.error(c.red('  ✗ DATABASE_URL no configurado en .env\n'));
+    rl.close(); process.exit(1);
+  }
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn(c.yellow('  ! OPENAI_API_KEY no configurado — la ingesta no funcionará'));
+  }
+
+  // 4. Migraciones
+  console.log(c.dim('\n  Aplicando schema (migrations)...'));
+  const migOk = await spawnNode([join(__dirname, 'setup-db.js')]);
+  if (migOk) {
+    console.log(c.green('  ✓ Schema listo'));
+  } else {
+    console.error(c.red('  ✗ Error al aplicar schema — verifica DATABASE_URL y que PostgreSQL esté corriendo'));
+    rl.close(); process.exit(1);
+  }
+
+  // 5. init-project si hay git remote y no hay config
+  const cfgExists = !!findConfigFile();
+  if (!cfgExists && gitRemoteUrl()) {
+    console.log(c.dim('\n  Repo git detectado. Creando configuracion del proyecto...'));
+    await cmdInitProject({ yes: true });
+  }
+
+  rl.close();
+
+  // 6. MCP config snippet
+  console.log(c.bold('\n  Configuracion MCP:\n'));
+  await cmdMcpConfig({});
+
+  // 7. Doctor
+  console.log(c.dim('─'.repeat(50)));
+  await cmdDoctor();
+
+  console.log(c.bold('  Proximos pasos:\n'));
+  console.log(`  ${c.cyan('vector-memory ingest')}    — indexar archivos del proyecto`);
+  console.log(`  ${c.cyan('vector-memory search')} "<query>"  — buscar en memoria`);
+  console.log(`  ${c.cyan('vector-memory mcp-config --target opencode')}  — config para tu agente\n`);
+}
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+function spawnNode(args) {
+  return new Promise(res => {
+    const child = spawn(process.execPath, args, { env: process.env, stdio: 'inherit' });
+    child.on('close', code => res(code === 0));
+  });
+}
+
 // ─── Help ─────────────────────────────────────────────────────────────────────
 function printHelp(unknown) {
   console.log(c.bold('\nvector-memory\n'));
   console.log('  Comandos:\n');
+  console.log('    quickstart            Configuracion guiada desde cero');
   console.log('    init-project          Crea .vector-memory.json con la config del repo');
   console.log('    doctor                Verifica configuracion, DB y dependencias');
+  console.log('    migrate               Aplica el schema SQL en la DB');
   console.log('    ingest [path...]      Ingesta archivos usando la config del proyecto');
-  console.log('    search <query>        Busca memorias por similitud semantica\n');
+  console.log('    search <query>        Busca memorias por similitud semantica');
+  console.log('    mcp-config            Genera snippet de config MCP copiable');
+  console.log('    up                    docker compose up -d (solo PostgreSQL)');
+  console.log('    down                  docker compose down\n');
   console.log('  Flags:\n');
   console.log('    --dry-run             Simula la ingesta sin guardar nada');
   console.log('    --secret-mode MODE    block|redact para ingesta (default: block)');
@@ -416,7 +597,9 @@ function printHelp(unknown) {
   console.log('    --status STATUS       Filtrar por status');
   console.log('    --org ORG             Filtrar por organizacion');
   console.log('    --project PROJECT     Filtrar por proyecto');
-  console.log('    --yes                 Aceptar defaults en init-project (modo no interactivo)\n');
+  console.log('    --yes                 Aceptar defaults en init-project (modo no interactivo)');
+  console.log('    --target TARGET       Target para mcp-config: claude-code|opencode|cursor|openclaw');
+  console.log('    --full                Levantar todos los servicios Docker (api incluida)\n');
 
   if (unknown) {
     console.error(c.red(`Comando desconocido: ${unknown}\n`));
@@ -429,6 +612,9 @@ async function main() {
   const { command, flags, positional } = parseArgs(process.argv);
 
   switch (command) {
+    case 'quickstart':
+      await cmdQuickstart();
+      break;
     case 'init-project':
     case 'init':
       await cmdInitProject(flags);
@@ -436,11 +622,23 @@ async function main() {
     case 'doctor':
       await cmdDoctor();
       break;
+    case 'migrate':
+      await cmdMigrate();
+      break;
     case 'ingest':
       await cmdIngest({ positional, flags });
       break;
     case 'search':
       await cmdSearch({ positional, flags });
+      break;
+    case 'mcp-config':
+      await cmdMcpConfig(flags);
+      break;
+    case 'up':
+      await cmdDockerUp(flags);
+      break;
+    case 'down':
+      await cmdDockerDown();
       break;
     default:
       printHelp(command);
