@@ -136,6 +136,87 @@ Respuesta:
 
 ---
 
+## GET /query/compact — Busqueda compacta
+
+Igual que `/query` pero devuelve un snippet de 150 caracteres por resultado.
+Util para orientarse sin saturar el context window.
+
+```bash
+curl "http://localhost:3010/query/compact?q=rate+limit+JWT&limit=5"
+```
+
+---
+
+## GET /memories — Recuperar por IDs
+
+Recupera memorias completas por lista de IDs o public_ids.
+
+```bash
+curl "http://localhost:3010/memories?ids=VM-000001,VM-000042"
+```
+
+---
+
+## GET /timeline — Historial cronologico
+
+```bash
+curl "http://localhost:3010/timeline?project=demo-project&from=2026-04-01&limit=50"
+```
+
+| Parametro | Tipo | Descripcion |
+|---|---|---|
+| `project` | string | Filtrar por proyecto |
+| `from` | string | Fecha inicio `YYYY-MM-DD` |
+| `to` | string | Fecha fin `YYYY-MM-DD` |
+| `limit` | number | Cantidad de resultados (default: 50) |
+
+---
+
+## POST /reflect — Analizar coherencia
+
+Analiza memorias recientes con gpt-4o-mini y detecta contradicciones, duplicados y gaps.
+**Solo sugiere, no modifica nada.**
+
+```bash
+curl -X POST http://localhost:3010/reflect \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project": "demo-project",
+    "focus": "decisiones de arquitectura",
+    "limit": 30
+  }'
+```
+
+### Body
+
+| Campo | Tipo | Descripcion |
+|---|---|---|
+| `project` | string | Filtrar por proyecto |
+| `organization` | string | Filtrar por organizacion |
+| `repo_name` | string | Filtrar por repositorio |
+| `memory_type` | string | Filtrar por tipo |
+| `focus` | string | Indicacion textual de que analizar (opcional) |
+| `limit` | number | Cantidad de memorias a analizar (default: 30, max: 60) |
+
+### Respuesta
+
+```json
+{
+  "memories_analyzed": 24,
+  "findings": [
+    "Las memorias VM-000012 y VM-000031 describen decisiones contradictorias sobre Redis."
+  ],
+  "suggested_new_memories": [
+    "Documentar la decision final entre Redis y Memcached para cache de sesiones."
+  ],
+  "suggested_deprecations": [
+    { "id": "VM-000012", "reason": "Contradiccion con VM-000031 que es mas reciente." }
+  ]
+}
+```
+
+---
+
 ## POST /ingest — Ingestar un archivo
 
 Ingesta un archivo del filesystem, aplica denylist y politica de secretos, y guarda los chunks con embeddings.
@@ -169,6 +250,7 @@ curl -X POST http://localhost:3010/ingest \
 | `tags` | array | Lista de tags |
 | `dry_run` | boolean | Simula sin guardar (default: false) |
 | `secret_mode` | string | `block` o `redact` para esta ingesta |
+| `auto_classify` | boolean | Infiere `memory_type`, `criticality` y `tags` por IA si no se proveen (default: false) |
 
 ---
 

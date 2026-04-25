@@ -19,6 +19,7 @@
     <button class="nav-tab active" data-view="search">Buscar</button>
     <button class="nav-tab" data-view="recent">Recientes</button>
     <button class="nav-tab" data-view="timeline">Timeline</button>
+    <button class="nav-tab" data-view="reflect">Reflect</button>
     <button class="nav-tab" data-view="stats">Stats</button>
 
     <span class="nav-spacer"></span>
@@ -96,6 +97,34 @@
         <button id="timeline-refresh" class="btn btn-ghost">Cargar</button>
       </div>
       <div id="timeline-results"><div class="empty"><b>Selecciona un rango</b>Ajusta las fechas y presiona Cargar.</div></div>
+    </section>
+
+    <!-- ── View: Reflect ── -->
+    <section id="view-reflect" class="view">
+      <div class="reflect-desc">
+        Analiza memorias recientes con IA para detectar contradicciones, duplicados y gaps.
+        Solo sugiere acciones — no modifica nada.
+      </div>
+
+      <div class="filters" style="margin-bottom:12px">
+        <input id="reflect-project"  type="text" placeholder="project (opcional)"  class="filter-input" />
+        <input id="reflect-repo"     type="text" placeholder="repo_name (opcional)" class="filter-input" />
+        <input id="reflect-focus"    type="text" placeholder="foco: p.ej. decisiones de arquitectura" class="filter-input filter-input-wide" />
+        <select id="reflect-limit" style="width:140px">
+          <option value="20">20 memorias</option>
+          <option value="30" selected>30 memorias</option>
+          <option value="50">50 memorias</option>
+          <option value="60">60 memorias</option>
+        </select>
+        <button id="reflect-btn" class="btn btn-primary">Analizar</button>
+      </div>
+
+      <div id="reflect-results">
+        <div class="empty">
+          <b>Listo para analizar</b>
+          Filtra por proyecto o repositorio y presiona Analizar.
+        </div>
+      </div>
     </section>
 
     <!-- ── View: Stats ── -->

@@ -35,6 +35,16 @@ async function apiFetch(path) {
   return res.json();
 }
 
+async function apiPost(path, body) {
+  const res = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 // ── Badges ────────────────────────────────────────────────────────────────────
 function statusBadge(status) {
   const s = status || 'active';
@@ -59,6 +69,15 @@ function scoreBadge(score) {
       <span class="score-bar-fill"><span style="width:${pct}%"></span></span>
       ${score}
     </span>`;
+}
+
+function classifyBadge(metadata) {
+  if (!metadata) return '';
+  const src = metadata.classification_source;
+  if (src !== 'auto') return '';
+  const conf = metadata.classification_confidence;
+  const pct = conf != null ? ` ${Math.round(conf * 100)}%` : '';
+  return `<span class="badge badge-auto" title="Clasificado automáticamente por IA${pct ? ' · confianza ' + pct : ''}">auto${pct}</span>`;
 }
 
 function tagsHtml(tags) {
@@ -88,6 +107,7 @@ function memoryCard(r, showScore = false) {
         ${typeBadge(r.memory_type || r.source_type)}
         ${statusBadge(r.status)}
         ${critBadge(r.criticality)}
+        ${classifyBadge(r.metadata)}
         ${showScore && r.score != null ? scoreBadge(r.score) : ''}
         ${context}
         <span class="card-meta">${formatDate(r.created_at)}</span>
@@ -218,6 +238,72 @@ async function loadTimeline() {
   }
 }
 
+// ── View: Reflect ─────────────────────────────────────────────────────────────
+async function doReflect() {
+  const project = $('#reflect-project').value.trim() || null;
+  const repo    = $('#reflect-repo').value.trim()    || null;
+  const focus   = $('#reflect-focus').value.trim()   || null;
+  const limit   = parseInt($('#reflect-limit').value) || 30;
+
+  const container = $('#reflect-results');
+  container.innerHTML = '<div class="spinner"></div>';
+  $('#reflect-btn').disabled = true;
+
+  try {
+    const body = { limit };
+    if (project) body.project      = project;
+    if (repo)    body.repo_name    = repo;
+    if (focus)   body.focus        = focus;
+
+    const data = await apiPost('/reflect', body);
+
+    const { memories_analyzed = 0, findings = [], suggested_new_memories = [], suggested_deprecations = [] } = data;
+
+    const findingsHtml = findings.length
+      ? findings.map(f => `<li class="reflect-item reflect-finding">${escHtml(f)}</li>`).join('')
+      : `<li class="reflect-item reflect-empty">Sin hallazgos relevantes.</li>`;
+
+    const newMemHtml = suggested_new_memories.length
+      ? suggested_new_memories.map(m => `<li class="reflect-item reflect-new">${escHtml(m)}</li>`).join('')
+      : `<li class="reflect-item reflect-empty">Sin sugerencias de nuevas memorias.</li>`;
+
+    const deprHtml = suggested_deprecations.length
+      ? suggested_deprecations.map(d => {
+          const idLabel = d.id ? `<span class="public-id" title="Click para copiar" onclick="copyId('${escHtml(d.id)}')">${escHtml(d.id)}</span> — ` : '';
+          return `<li class="reflect-item reflect-deprecate">${idLabel}${escHtml(d.reason || '')}</li>`;
+        }).join('')
+      : `<li class="reflect-item reflect-empty">Sin deprecaciones sugeridas.</li>`;
+
+    container.innerHTML = `
+      <div class="reflect-summary">
+        <span class="reflect-count">${memories_analyzed}</span> memorias analizadas
+        ${focus ? `· foco: <em>${escHtml(focus)}</em>` : ''}
+      </div>
+
+      <div class="reflect-section">
+        <div class="reflect-section-title reflect-title-finding">Hallazgos</div>
+        <ul class="reflect-list">${findingsHtml}</ul>
+      </div>
+
+      <div class="reflect-section">
+        <div class="reflect-section-title reflect-title-new">Memorias sugeridas</div>
+        <ul class="reflect-list">${newMemHtml}</ul>
+      </div>
+
+      <div class="reflect-section">
+        <div class="reflect-section-title reflect-title-deprecate">Deprecaciones sugeridas</div>
+        <ul class="reflect-list">${deprHtml}</ul>
+      </div>
+
+      <p class="reflect-footer">Solo sugerencias — nada fue modificado.</p>`;
+
+  } catch (err) {
+    container.innerHTML = `<div class="empty"><b>Error</b>${escHtml(err.message)}</div>`;
+  } finally {
+    $('#reflect-btn').disabled = false;
+  }
+}
+
 // ── View: Stats ───────────────────────────────────────────────────────────────
 async function loadStats() {
   const container = $('#stats-content');
@@ -286,6 +372,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Timeline refresh
   $('#timeline-refresh').addEventListener('click', loadTimeline);
+
+  // Reflect
+  $('#reflect-btn').addEventListener('click', doReflect);
+  $$('#reflect-project, #reflect-repo, #reflect-focus').forEach(el => {
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') doReflect(); });
+  });
 
   // Stats refresh
   $('#stats-refresh').addEventListener('click', loadStats);

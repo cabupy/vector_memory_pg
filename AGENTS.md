@@ -32,6 +32,7 @@ estructurada y vigencia explícita. Las búsquedas combinan similitud vectorial
 | `deprecate_memory` | Marcar como obsoleta una memoria que ya no aplica |
 | `verify_memory` | Confirmar que una memoria sigue siendo válida |
 | `memory_stats` | Revisar el estado general de la base de conocimiento |
+| `reflect_memories` | Detectar contradicciones, duplicados y gaps; devuelve sugerencias sin modificar nada |
 
 ---
 
@@ -45,12 +46,16 @@ estructurada y vigencia explícita. Las búsquedas combinan similitud vectorial
 ### Durante la sesión
 - Si descubres algo técnico importante (decisión de arquitectura, bug no obvio,
   patrón que funcionó, restricción del sistema), guárdalo con `save_memory`.
+- Usa `auto_classify: true` si no tienes claro el tipo o la criticidad; la IA los infiere
+  con gpt-4o-mini y solo rellena los campos que no hayas provisto explícitamente.
 - Usa `update_memory` si una memoria existente quedó desactualizada.
 - Usa `deprecate_memory` si algo que encontraste ya no aplica.
 
 ### Al final
 - Llama `save_session_summary` con un resumen de lo trabajado:
   qué se hizo, qué decisiones se tomaron, qué quedó pendiente.
+- Opcionalmente llama `reflect_memories` si la sesión fue larga o hubo cambios de criterio;
+  te devolverá sugerencias de consolidación sin modificar nada.
 
 ---
 

@@ -72,9 +72,12 @@ Agente (Claude Code / OpenCode / Cursor)
 - `memory_timeline` — historial cronológico agrupado por fecha
 
 **Escritura desde MCP**
-- `save_memory` — guarda decisiones, bugs, patrones, restricciones
+- `save_memory` — guarda decisiones, bugs, patrones, restricciones; acepta `auto_classify: true` para inferir tipo, criticidad y tags con IA
 - `save_session_summary` — resumen de sesión al finalizar
 - `update_memory`, `deprecate_memory`, `verify_memory`
+
+**Análisis**
+- `reflect_memories` — analiza memorias recientes con gpt-4o-mini; detecta contradicciones, duplicados y gaps; devuelve sugerencias sin modificar nada
 
 **Ciclo de vida de sesión**
 - `POST /events/session-start` — inyecta contexto relevante al iniciar
@@ -136,11 +139,12 @@ vector-memory mcp-config --target claude-code
 | `recent_memories` | Lista memorias recientes |
 | `memory_timeline` | Historial cronológico agrupado por fecha |
 | `memory_stats` | Estadísticas de la base de conocimiento |
-| `save_memory` | Guarda una memoria nueva |
+| `save_memory` | Guarda una memoria nueva; acepta `auto_classify: true` |
 | `save_session_summary` | Guarda el resumen al final de cada sesión |
 | `update_memory` | Corrige o actualiza una memoria existente |
 | `deprecate_memory` | Marca una memoria como obsoleta |
 | `verify_memory` | Confirma que una memoria sigue siendo válida |
+| `reflect_memories` | Detecta contradicciones y gaps; sugiere acciones sin modificar nada |
 
 ## Documentación
 

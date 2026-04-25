@@ -5,6 +5,21 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.6] - 2026-04-25
+
+### Agregado
+- UI: nueva vista **Reflect** — formulario con filtros (project, repo_name, focus, limit), llama `POST /reflect` y muestra hallazgos, memorias sugeridas y deprecaciones sugeridas con color-coding; solo sugiere, no modifica nada
+- UI: badge **auto** (amarillo) en los cards de memorias clasificadas automáticamente por IA; muestra el porcentaje de confianza en el tooltip
+
+### Actualizado
+- `docs/mcp.md` — tabla de herramientas actualizada a 12; `save_memory` documenta `auto_classify: true`; sección nueva de `reflect_memories` con respuesta de ejemplo; ejemplos de uso actualizados
+- `docs/http-api.md` — secciones nuevas: `GET /query/compact`, `GET /memories`, `GET /timeline`, `POST /reflect`; `POST /ingest` documenta `auto_classify`
+- `README.md` — tabla MCP actualizada a 12 herramientas con `reflect_memories`; sección de características menciona `auto_classify` y `reflect_memories`
+- `AGENTS.md` — tabla de herramientas incluye `reflect_memories`; flujo de sesión menciona `auto_classify: true` y `reflect_memories` al final de sesión
+- `doctor`: avisa explícitamente que sin `OPENAI_API_KEY` no funcionan ingesta, `auto_classify` ni `reflect_memories`
+
+---
+
 ## [1.9.5] - 2026-04-25
 
 ### Agregado

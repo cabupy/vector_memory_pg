@@ -170,7 +170,11 @@ async function cmdDoctor() {
       ? 'Usando DATABASE_URL como fallback (recomendado: setear VECTOR_MEMORY_DATABASE_URL)'
       : 'Falta en ~/.vector-memory.env o en el entorno',
   });
-  checks.push({ ok: !!process.env.OPENAI_API_KEY, label: 'OPENAI_API_KEY', hint: 'Falta en .env' });
+  checks.push({
+    ok:   !!process.env.OPENAI_API_KEY,
+    label: 'OPENAI_API_KEY',
+    hint:  'Falta en ~/.vector-memory.env — requerida para ingesta, auto_classify y reflect_memories',
+  });
 
   // Config file
   const cfgPath = findConfigFile();
