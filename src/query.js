@@ -2,6 +2,7 @@
 // Equivale a queryMemories() del artículo, pero el coseno lo hace PostgreSQL
 
 import { embedOne } from "./embeddings.js";
+import { classifyMemory } from "./classify.js";
 import { randomUUID } from "crypto";
 import {
   queryByEmbedding,
@@ -99,10 +100,31 @@ export async function recentMemories(options = {}) {
 
 /**
  * Guarda una memoria manual con embedding para uso desde MCP.
+ * Si auto_classify=true, llama a OpenAI para sugerir tipo, criticidad y tags.
  */
 export async function saveMemory(options) {
   const content = options.content.trim();
   const id = `manual_${Date.now()}_${randomUUID().slice(0, 8)}`;
+
+  // Auto-clasificación opcional
+  let memoryType = options.memoryType || "memory";
+  let criticality = options.criticality || "normal";
+  let tags = options.tags || [];
+  let classificationSource = "manual";
+  let classificationConfidence = null;
+
+  if (options.autoClassify) {
+    const classification = await classifyMemory(content);
+    if (classification) {
+      // Solo sobrescribir campos no provistos explícitamente por el usuario
+      if (!options.memoryType) memoryType = classification.memory_type;
+      if (!options.criticality) criticality = classification.criticality;
+      if (!options.tags || options.tags.length === 0) tags = classification.tags;
+      classificationSource = "auto";
+      classificationConfidence = classification.confidence;
+    }
+  }
+
   const embedding = await embedOne(content);
 
   await insertMemory({
@@ -114,23 +136,25 @@ export async function saveMemory(options) {
     organization: options.organization || null,
     project: options.project || null,
     repoName: options.repoName || null,
-    memoryType: options.memoryType || "memory",
+    memoryType,
     status: options.status || "active",
-    criticality: options.criticality || "normal",
-    tags: options.tags || [],
+    criticality,
+    tags,
     lastVerifiedAt: options.lastVerifiedAt || null,
     createdAt: new Date().toISOString(),
     metadata: {
       source: "mcp",
       created_by_agent: true,
       author: options.author || null,
+      classification_source: classificationSource,
+      ...(classificationConfidence !== null ? { classification_confidence: classificationConfidence } : {}),
     },
     chunkIndex: 0,
     tokenCount: estimateTokens(content),
     embedding,
   });
 
-  return { id, content };
+  return { id, content, memory_type: memoryType, criticality, tags, classification_source: classificationSource };
 }
 
 export async function deprecateMemory(id, options = {}) {
@@ -291,4 +315,134 @@ export async function memoryTimeline(options = {}) {
       created_at: row.created_at,
     })),
   }));
+}
+
+// ─── reflect_memories ─────────────────────────────────────────────────────────
+
+const REFLECT_MODEL = "gpt-4o-mini";
+
+const REFLECT_SYSTEM = `You are a technical memory analyst for a software development knowledge base.
+Given a set of technical memories from a project, analyze them and respond with a JSON object (no markdown, no extra text) with:
+- summary: string — brief description of the overall knowledge state
+- findings: array of objects with:
+    - type: "contradiction" | "consolidation" | "outdated" | "redundant"
+    - description: string explaining the finding
+    - memory_ids: array of affected memory IDs (use the id field)
+    - suggested_action: string — what to do (deprecate, consolidate, verify, etc.)
+- suggested_new_memories: array of objects with:
+    - content: string
+    - memory_type: string
+    - criticality: string
+    - tags: array of strings
+    reason why this new memory would be valuable
+- suggested_deprecations: array of memory IDs that should be deprecated
+
+Rules:
+- Be conservative: only flag clear contradictions, not subtle differences
+- Do not suggest deprecating memories without strong reason
+- Focus on technical accuracy and usefulness for AI coding agents
+- Keep suggested_new_memories concise and actionable
+- Respond with valid JSON only`;
+
+/**
+ * Analiza memorias existentes para detectar contradicciones, redundancias
+ * y oportunidades de consolidación. Usa OpenAI para el análisis.
+ *
+ * @param {Object} options
+ * @param {string} [options.project]
+ * @param {string} [options.organization]
+ * @param {string} [options.repo_name]
+ * @param {string} [options.focus] — tema de análisis (e.g. "security", "architecture")
+ * @param {number} [options.limit] — máximo de memorias a analizar (default 30)
+ * @returns {Promise<Object>}
+ */
+export async function reflectMemories(options = {}) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY no configurada");
+
+  const limit = Math.min(options.limit || 30, 60);
+
+  // Recuperar memorias activas del scope solicitado
+  const rows = await getRecent({
+    limit,
+    organization: options.organization || null,
+    project: options.project || null,
+    repoName: options.repo_name || null,
+    memoryType: options.memory_type || null,
+    status: "active",
+  });
+
+  if (rows.length === 0) {
+    return {
+      summary: "No se encontraron memorias activas para el scope solicitado.",
+      findings: [],
+      suggested_new_memories: [],
+      suggested_deprecations: [],
+      analyzed_count: 0,
+    };
+  }
+
+  // Construir contexto compacto para el modelo
+  const memoriesText = rows
+    .map((m) => {
+      const meta = [m.memory_type, m.criticality, m.repo_name, m.project].filter(Boolean).join(" / ");
+      return `ID: ${m.id}\nType: ${meta}\nContent: ${m.content.slice(0, 400)}`;
+    })
+    .join("\n\n---\n\n");
+
+  const userMessage = [
+    options.focus ? `Focus: ${options.focus}` : null,
+    options.repo_name ? `Repository: ${options.repo_name}` : null,
+    options.project ? `Project: ${options.project}` : null,
+    `\nMemories to analyze (${rows.length}):\n\n${memoriesText}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: REFLECT_MODEL,
+      temperature: 0.1,
+      max_tokens: 1500,
+      messages: [
+        { role: "system", content: REFLECT_SYSTEM },
+        { role: "user", content: userMessage },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`OpenAI reflect error (${response.status}): ${err}`);
+  }
+
+  const data = await response.json();
+  const raw = data.choices?.[0]?.message?.content?.trim();
+  if (!raw) throw new Error("OpenAI devolvió respuesta vacía");
+
+  let result;
+  try {
+    result = JSON.parse(raw);
+  } catch {
+    throw new Error(`No se pudo parsear la respuesta de OpenAI: ${raw.slice(0, 200)}`);
+  }
+
+  return {
+    analyzed_count: rows.length,
+    scope: {
+      organization: options.organization || null,
+      project: options.project || null,
+      repo_name: options.repo_name || null,
+      focus: options.focus || null,
+    },
+    summary: result.summary ?? "",
+    findings: Array.isArray(result.findings) ? result.findings : [],
+    suggested_new_memories: Array.isArray(result.suggested_new_memories) ? result.suggested_new_memories : [],
+    suggested_deprecations: Array.isArray(result.suggested_deprecations) ? result.suggested_deprecations : [],
+  };
 }

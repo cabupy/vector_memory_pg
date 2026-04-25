@@ -14,7 +14,7 @@ import { fileURLToPath } from "url";
 import { homedir } from "os";
 import dotenv from "dotenv";
 import { initDb, getStats, getSanitizationLog } from "./db.js";
-import { searchMemories, recentMemories, saveSessionSummary, searchMemoriesCompact, getMemories, memoryTimeline } from "./query.js";
+import { searchMemories, recentMemories, saveSessionSummary, searchMemoriesCompact, getMemories, memoryTimeline, reflectMemories } from "./query.js";
 import pool from "./db.js";
 import { getDeniedIngestReason } from "./security.js";
 import { applyContentPolicy } from "./content-policy.js";
@@ -221,6 +221,22 @@ async function handleRequest(req, res) {
       const groups = await memoryTimeline({ limit, from, to, ...filters });
       res.writeHead(200);
       return res.end(JSON.stringify({ days: groups.length, timeline: groups }));
+    }
+
+    // POST /reflect — analizar memorias con IA
+    // body: { project?, organization?, repo_name?, focus?, memory_type?, limit? }
+    if (path === "/reflect" && req.method === "POST") {
+      const body = await readBody(req);
+      const result = await reflectMemories({
+        project:      body.project      || null,
+        organization: body.organization || null,
+        repo_name:    body.repo_name    || null,
+        focus:        body.focus        || null,
+        memory_type:  body.memory_type  || null,
+        limit:        body.limit        || 30,
+      });
+      res.writeHead(200);
+      return res.end(JSON.stringify(result));
     }
 
     // POST /ingest

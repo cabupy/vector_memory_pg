@@ -508,31 +508,39 @@ async function cmdQuickstart() {
   }
   console.log(c.green(`  ✓ Node.js ${process.versions.node}`));
 
-  // 2. .env
-  const envPath = resolve(process.cwd(), '.env');
-  const envExamplePath = resolve(__dirname, '..', '.env.example');
-  let envExists = existsSync(envPath);
+  // 2. Config global ~/.vector-memory.env (preferida sobre .env local)
+  const globalEnvPath = join(homedir(), '.vector-memory.env');
+  const globalExists  = existsSync(globalEnvPath);
 
-  if (!envExists) {
-    console.log(c.yellow('\n  No se encontró .env en el directorio actual.'));
-    const create = await ask('¿Crear .env ahora?', 'si');
+  if (globalExists) {
+    dotenv.config({ path: globalEnvPath });
+    console.log(c.green(`  ✓ ${globalEnvPath} encontrado`));
+  } else {
+    console.log(c.yellow(`\n  No se encontró ${globalEnvPath}`));
+    console.log(c.dim('  Este archivo aplica desde cualquier directorio y evita colisiones con otros proyectos.'));
+    const create = await ask('¿Crear ~/.vector-memory.env ahora?', 'si');
     if (create.toLowerCase().startsWith('s')) {
-      let template = '# vector-memory-pg\n';
-      try { template = await readFile(envExamplePath, 'utf-8'); } catch { /* sin template */ }
       const dbUrl  = await ask('VECTOR_MEMORY_DATABASE_URL', 'postgres://vector:vector@localhost:5433/vector_memory');
       const apiKey = await ask('OPENAI_API_KEY', '');
-      const content = template
-        .replace(/^VECTOR_MEMORY_DATABASE_URL=.*/m, `VECTOR_MEMORY_DATABASE_URL=${dbUrl}`)
-        .replace(/^DATABASE_URL=.*/m,               `DATABASE_URL=${dbUrl}`)
-        .replace(/^OPENAI_API_KEY=.*/m,             `OPENAI_API_KEY=${apiKey}`);
-      await writeFile(envPath, content);
-      dotenv.config({ path: envPath });
-      console.log(c.green('  ✓ .env creado'));
-      envExists = true;
+      const envContent = [
+        '# vector-memory — config global de usuario',
+        '# Se carga automáticamente desde cualquier directorio.',
+        '',
+        `VECTOR_MEMORY_DATABASE_URL=${dbUrl}`,
+        `OPENAI_API_KEY=${apiKey}`,
+        '',
+      ].join('\n');
+      await writeFile(globalEnvPath, envContent);
+      dotenv.config({ path: globalEnvPath });
+      console.log(c.green(`  ✓ ${globalEnvPath} creado`));
+    } else {
+      // Fallback: .env local
+      const localEnvPath = resolve(process.cwd(), '.env');
+      if (existsSync(localEnvPath)) {
+        dotenv.config({ path: localEnvPath });
+        console.log(c.green('  ✓ .env local encontrado'));
+      }
     }
-  } else {
-    dotenv.config({ path: envPath });
-    console.log(c.green('  ✓ .env encontrado'));
   }
 
   // 3. Vars requeridas
@@ -541,7 +549,7 @@ async function cmdQuickstart() {
     rl.close(); process.exit(1);
   }
   if (!process.env.OPENAI_API_KEY) {
-    console.warn(c.yellow('  ! OPENAI_API_KEY no configurado — la ingesta no funcionará'));
+    console.warn(c.yellow('  ! OPENAI_API_KEY no configurado — la ingesta y classify no funcionarán'));
   }
 
   // 4. Migraciones
@@ -572,9 +580,13 @@ async function cmdQuickstart() {
   await cmdDoctor();
 
   console.log(c.bold('  Proximos pasos:\n'));
-  console.log(`  ${c.cyan('vector-memory ingest')}    — indexar archivos del proyecto`);
-  console.log(`  ${c.cyan('vector-memory search')} "<query>"  — buscar en memoria`);
-  console.log(`  ${c.cyan('vector-memory mcp-config --target opencode')}  — config para tu agente\n`);
+  console.log(`  ${c.cyan('vector-memory ingest')}                    — indexar archivos del proyecto`);
+  console.log(`  ${c.cyan('vector-memory search')} "<query>"           — buscar en memoria`);
+  console.log(`  ${c.cyan('vector-memory worker --open')}              — levantar server y abrir UI`);
+  console.log(`  ${c.cyan('vector-memory mcp-config --target opencode')} — config MCP para tu agente`);
+  console.log(c.dim('\n  Funciones avanzadas (via MCP o HTTP API):'));
+  console.log(c.dim('  • save_memory con auto_classify:true   — clasificacion automatica por IA'));
+  console.log(c.dim('  • reflect_memories                     — detectar contradicciones y consolidar\n'));
 }
 
 // ─── Cmd: worker ──────────────────────────────────────────────────────────────

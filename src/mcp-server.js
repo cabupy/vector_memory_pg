@@ -27,6 +27,7 @@ import {
   getMemories,
   searchMemoriesCompact,
   memoryTimeline,
+  reflectMemories,
 } from "./query.js";
 import pool from "./db.js";
 import { applyContentPolicy } from "./content-policy.js";
@@ -114,6 +115,7 @@ server.tool(
     content: z.string().min(1).describe("Contenido de la memoria a guardar"),
     author: z.string().optional().describe("Autor humano o agente que originó la memoria"),
     source_path: z.string().optional().describe("Fuente lógica o archivo relacionado"),
+    auto_classify: z.boolean().optional().describe("Si true, usa IA para sugerir memory_type, criticality y tags automáticamente"),
     ...memoryMetadataSchema,
   },
   async (args) => {
@@ -129,14 +131,19 @@ server.tool(
       content: clean,
       author: args.author,
       sourcePath: args.source_path,
+      autoClassify: args.auto_classify ?? false,
       ...normalizeMetadata(args),
     });
+
+    const classifiedNote = memory.classification_source === "auto"
+      ? ` [auto-clasificado: ${memory.memory_type} / ${memory.criticality} / tags: ${memory.tags.join(", ")}]`
+      : "";
 
     return {
       content: [
         {
           type: "text",
-          text: `Memoria guardada: ${memory.id}`,
+          text: `Memoria guardada: ${memory.id}${classifiedNote}`,
         },
       ],
     };
@@ -518,6 +525,70 @@ server.tool(
     return {
       content: [{ type: "text", text }],
     };
+  }
+);
+
+// --- Herramienta: reflect_memories ---
+
+server.tool(
+  "reflect_memories",
+  "Analiza memorias activas de un proyecto o repo para detectar contradicciones, redundancias y oportunidades de consolidación. Usa IA para razonar sobre el conjunto de memorias. No modifica nada: solo sugiere acciones.",
+  {
+    project: z.string().optional().describe("Proyecto a analizar"),
+    organization: z.string().optional().describe("Organización"),
+    repo_name: z.string().optional().describe("Repositorio a analizar"),
+    focus: z.string().optional().describe("Tema de análisis (e.g. 'security', 'architecture', 'deployment')"),
+    memory_type: z.string().optional().describe("Filtrar por tipo de memoria"),
+    limit: z.number().optional().describe("Máximo de memorias a analizar (default 30, max 60)"),
+  },
+  async (args) => {
+    try {
+      const result = await reflectMemories({
+        project: args.project,
+        organization: args.organization,
+        repo_name: args.repo_name,
+        focus: args.focus,
+        memory_type: args.memory_type,
+        limit: args.limit,
+      });
+
+      const lines = [
+        `## Análisis de ${result.analyzed_count} memorias`,
+        result.scope.repo_name ? `Repo: ${result.scope.repo_name}` : null,
+        result.scope.project   ? `Proyecto: ${result.scope.project}` : null,
+        result.scope.focus     ? `Foco: ${result.scope.focus}` : null,
+        "",
+        `**Resumen:** ${result.summary}`,
+      ].filter((l) => l !== null);
+
+      if (result.findings.length > 0) {
+        lines.push("", `**Hallazgos (${result.findings.length}):**`);
+        for (const f of result.findings) {
+          lines.push(`- [${f.type}] ${f.description}`);
+          lines.push(`  IDs afectados: ${f.memory_ids?.join(", ") ?? "-"}`);
+          lines.push(`  Acción sugerida: ${f.suggested_action}`);
+        }
+      }
+
+      if (result.suggested_new_memories.length > 0) {
+        lines.push("", `**Memorias nuevas sugeridas (${result.suggested_new_memories.length}):**`);
+        for (const m of result.suggested_new_memories) {
+          lines.push(`- [${m.memory_type} / ${m.criticality}] ${m.content}`);
+        }
+      }
+
+      if (result.suggested_deprecations.length > 0) {
+        lines.push("", `**Deprecaciones sugeridas:** ${result.suggested_deprecations.join(", ")}`);
+      }
+
+      if (result.findings.length === 0 && result.suggested_new_memories.length === 0 && result.suggested_deprecations.length === 0) {
+        lines.push("", "No se detectaron problemas. La base de conocimiento parece consistente.");
+      }
+
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error al analizar memorias: ${err.message}` }] };
+    }
   }
 );
 

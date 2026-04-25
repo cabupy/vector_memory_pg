@@ -1,6 +1,6 @@
 {
   "name": "vector-memory-pg",
-  "version": "1.9.4",
+  "version": "1.9.5",
   "description": "Persistent semantic memory for AI coding agents, powered by PostgreSQL + pgvector, OpenAI embeddings, HTTP API, and MCP server support.",
   "type": "module",
   "license": "MIT",

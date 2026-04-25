@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.5] - 2026-04-25
+
+### Agregado
+- `src/classify.js` — `classifyMemory(content)`: clasifica automáticamente una memoria con gpt-4o-mini; retorna `memory_type`, `criticality`, `tags` y `confidence`; no sobreescribe campos provistos explícitamente
+- `save_memory` (MCP + HTTP) acepta nuevo parámetro `auto_classify: true`; cuando está activo, los campos omitidos (`memory_type`, `criticality`, `tags`) se infieren por IA y se guarda `classification_source: 'auto'` en metadata
+- `reflect_memories` — nueva herramienta MCP y endpoint `POST /reflect`: analiza un conjunto de memorias recientes con gpt-4o-mini y devuelve `findings` (contradicciones, duplicados, gaps), `suggested_new_memories` y `suggested_deprecations`; solo sugiere, no modifica nada
+- `vector-memory quickstart` mejorado: escribe `~/.vector-memory.env` (config global) en lugar del `.env` local; muestra instrucciones de `worker --open` y las nuevas funciones `auto_classify` / `reflect_memories`
+
+---
+
 ## [1.9.4] - 2026-04-25
 
 ### Agregado
