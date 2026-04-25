@@ -38,6 +38,7 @@ Incluye una interfaz web local accesible en `http://localhost:3010/ui`:
 - **Recientes** — últimas N memorias ordenadas por fecha
 - **Timeline** — historial agrupado por día con rango configurable
 - **Stats** — totales, tamaño de DB y distribución por tipo
+- **Reflect** — analiza memorias con IA; detecta contradicciones y gaps; botones para deprecar o guardar sugerencias directamente
 
 ```bash
 vector-memory worker --open   # inicia server y abre el browser automáticamente
