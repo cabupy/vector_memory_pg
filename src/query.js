@@ -47,6 +47,7 @@ export async function searchMemories(queryText, options = {}) {
 
   return rows.map((row) => ({
     id: row.id,
+    public_id: row.public_id,
     content: row.content,
     source_type: row.source_type,
     source_path: row.source_path,
@@ -78,6 +79,7 @@ export async function recentMemories(options = {}) {
 
   return rows.map((row) => ({
     id: row.id,
+    public_id: row.public_id,
     content: row.content,
     source_type: row.source_type,
     source_path: row.source_path,

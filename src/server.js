@@ -245,13 +245,9 @@ async function handleRequest(req, res) {
 
         if (query) {
           const limit = ci.limit ?? 5;
-          const filters = {
-            project: body.project || null,
-            organization: body.organization || null,
-            repoName: body.repo_name || null,
-            status: "active",
-          };
-          context = await searchMemories(query, { limit, ...filters });
+          // Solo filtramos por status=active; la búsqueda semántica maneja la relevancia.
+          // Filtrar por project excluiría memorias sin metadata seteada.
+          context = await searchMemories(query, { limit, status: "active" });
         }
       }
 
