@@ -109,13 +109,19 @@ async function cmdInitProject(flags) {
   const repoDetected = detectRepoName();
   const orgDetected  = detectOrg();
 
+  // Auto-detectar archivos candidatos a ingestar
+  const cwd = process.cwd();
+  const candidatePaths = ['AGENTS.md', 'README.md', 'docs/'];
+  const detectedPaths  = candidatePaths.filter(p => existsSync(join(cwd, p)));
+  const defaultPaths   = detectedPaths.length > 0 ? detectedPaths.join(',') : 'README.md';
+
   const organization = flags.org         || await ask('Organizacion',                  orgDetected  || '');
   const project      = flags.project     || await ask('Proyecto',                      repoDetected || '');
   const repo_name    = flags.repo        || await ask('Repo name',                     repoDetected || '');
   const memory_type  = flags.type        || await ask('Memory type',                   'memory');
   const criticality  = flags.criticality || await ask('Criticality',                   'normal');
   const tagsRaw      = flags.tags        || await ask('Tags (separados por coma)',      '');
-  const ingestRaw    = flags['ingest-paths'] || await ask('Paths a ingestar (coma)',   'README.md,docs/');
+  const ingestRaw    = flags['ingest-paths'] || await ask('Paths a ingestar (coma)',   defaultPaths);
 
   rl.close();
 
@@ -133,6 +139,9 @@ async function cmdInitProject(flags) {
   await writeFile(configPath, JSON.stringify(config, null, 2) + '\n');
 
   console.log(c.green(`\n✓ ${configPath}\n`));
+  if (detectedPaths.length > 0) {
+    console.log(c.dim(`  Archivos detectados para ingestar: ${detectedPaths.join(', ')}\n`));
+  }
   console.log(c.dim(JSON.stringify(config, null, 2)) + '\n');
 
   if (flags.ingest) {
@@ -369,6 +378,7 @@ async function cmdSearch({ positional, flags }) {
 
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
+      const pid       = r.public_id ? c.cyan(r.public_id) + '  ' : '';
       const scoreStr  = r.score != null ? c.cyan(`${r.score}`) : '–';
       const typeStr   = c.dim(r.memory_type || r.source_type || '?');
       const repoStr   = r.repo_name ? c.dim(` [${r.repo_name}]`) : '';
@@ -377,7 +387,7 @@ async function cmdSearch({ positional, flags }) {
         ? c.dim(` ${r.criticality}`)
         : '';
 
-      console.log(`  ${c.bold(`${i + 1}.`)}  score:${scoreStr}  ${typeStr}${repoStr}${statusStr}${critStr}`);
+      console.log(`  ${c.bold(`${i + 1}.`)}  ${pid}score:${scoreStr}  ${typeStr}${repoStr}${statusStr}${critStr}`);
       if (r.source_path) console.log(`      ${c.dim(r.source_path)}`);
 
       const preview = r.content.replace(/\n+/g, ' ').trimStart().slice(0, 200);

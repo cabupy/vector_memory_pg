@@ -5,9 +5,13 @@
 
 CREATE EXTENSION IF NOT EXISTS vector;
 
+-- Secuencia para public_id tipo VM-000001
+CREATE SEQUENCE IF NOT EXISTS memories_public_id_seq START 1;
+
 -- Tabla principal: equivalente a 'memories' del artículo
 CREATE TABLE IF NOT EXISTS memories (
   id            TEXT PRIMARY KEY,
+  public_id     TEXT UNIQUE DEFAULT ('VM-' || LPAD(nextval('memories_public_id_seq')::TEXT, 6, '0')),
   content       TEXT NOT NULL,
   source_type   TEXT NOT NULL,       -- session, daily, memory, brain
   source_path   TEXT,
@@ -38,6 +42,15 @@ ALTER TABLE memories ADD COLUMN IF NOT EXISTS criticality TEXT NOT NULL DEFAULT 
 ALTER TABLE memories ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
 ALTER TABLE memories ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ;
 ALTER TABLE memories ADD COLUMN IF NOT EXISTS search_vector TSVECTOR GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED;
+ALTER TABLE memories ADD COLUMN IF NOT EXISTS public_id TEXT;
+
+-- Backfill public_id para registros existentes sin él
+UPDATE memories
+SET public_id = 'VM-' || LPAD(nextval('memories_public_id_seq')::TEXT, 6, '0')
+WHERE public_id IS NULL;
+
+-- Unicidad después del backfill
+CREATE UNIQUE INDEX IF NOT EXISTS idx_memories_public_id_unique ON memories (public_id);
 
 -- Control de ingesta incremental (equivalente a ingest_log)
 CREATE TABLE IF NOT EXISTS ingest_log (

@@ -196,7 +196,7 @@ export async function queryByEmbedding(embedding, options = {}) {
   const queryText = options.queryText || "";
 
   let sql = `
-    SELECT id, content, source_type, source_path, session_key,
+    SELECT id, public_id, content, source_type, source_path, session_key,
            organization, project, repo_name, memory_type, status, criticality, tags, last_verified_at,
            created_at, metadata, chunk_index,
            1 - (embedding <=> $1::vector) AS similarity,
@@ -279,7 +279,7 @@ export async function getRecent(options = {}) {
   const limit = options.limit || 5;
   const types = options.types || null;
 
-  let sql = `SELECT id, content, source_type, source_path, session_key,
+  let sql = `SELECT id, public_id, content, source_type, source_path, session_key,
                     organization, project, repo_name, memory_type, status, criticality, tags, last_verified_at,
                     created_at, metadata
              FROM memories WHERE 1=1`;
