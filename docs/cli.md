@@ -22,6 +22,59 @@ npm link
 
 ---
 
+## quickstart
+
+Configuración guiada desde cero: detecta el repo git, escribe
+`~/.vector-memory.env`, aplica el schema de la DB, muestra la config MCP
+y ejecuta `doctor`.
+
+```bash
+vector-memory quickstart
+```
+
+Crea (o actualiza) `~/.vector-memory.env` con:
+
+```
+VECTOR_MEMORY_DATABASE_URL=postgres://...
+OPENAI_API_KEY=sk-...
+```
+
+Recomendado como primer paso en una instalación nueva.
+
+---
+
+## mcp-config
+
+Genera el snippet de configuración MCP listo para pegar en tu agente.
+
+```bash
+vector-memory mcp-config
+vector-memory mcp-config --target claude-code
+vector-memory mcp-config --target opencode
+vector-memory mcp-config --target cursor
+```
+
+Targets disponibles: `claude-code` (default), `opencode`, `cursor`, `openclaw`.
+
+Ejemplo de salida (`claude-code`):
+
+```json
+{
+  "mcpServers": {
+    "vector-memory-pg": {
+      "command": "vector-memory",
+      "args": ["mcp"],
+      "env": {
+        "VECTOR_MEMORY_DATABASE_URL": "postgres://...",
+        "OPENAI_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+```
+
+---
+
 ## worker
 
 Levanta el servidor HTTP + MCP en `http://localhost:3010`.
