@@ -217,6 +217,77 @@ curl -X POST http://localhost:3010/reflect \
 
 ---
 
+## POST /memories — Guardar una memoria
+
+Guarda una memoria directamente sin necesidad de ingestar un archivo.
+Util para guardar desde la UI, desde scripts o desde clientes HTTP.
+
+```bash
+curl -X POST http://localhost:3010/memories \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "El rate limit de la API publica es 100 req/min por IP.",
+    "memory_type": "architecture",
+    "criticality": "high",
+    "tags": ["rate-limit", "api"],
+    "project": "demo-project",
+    "repo_name": "api-service"
+  }'
+```
+
+Con `auto_classify: true` los campos omitidos se infieren por IA:
+
+```bash
+curl -X POST http://localhost:3010/memories \
+  -H "Content-Type: application/json" \
+  -d '{ "content": "El deploy usa GitHub Actions con aprobacion manual en prod.", "auto_classify": true }'
+```
+
+### Body
+
+| Campo | Tipo | Descripcion |
+|---|---|---|
+| `content` | string | Contenido de la memoria (requerido) |
+| `memory_type` | string | Tipo (`decision`, `bug`, `architecture`, etc.) |
+| `criticality` | string | `low` \| `normal` \| `high` \| `critical` |
+| `tags` | array | Lista de tags |
+| `project` | string | Proyecto |
+| `organization` | string | Organizacion |
+| `repo_name` | string | Repositorio |
+| `author` | string | Autor (default: `ui`) |
+| `auto_classify` | boolean | Infiere tipo, criticidad y tags por IA si no se proveen (default: false) |
+
+### Respuesta
+
+HTTP `201`. Devuelve el registro guardado con `id`, `public_id` y metadata completa.
+
+Si el contenido contiene `@no-memory`, devuelve `{ "skipped": true }` con HTTP `200`.
+
+---
+
+## POST /memories/:id/deprecate — Deprecar una memoria
+
+Marca una memoria como `deprecated` por ID interno o `public_id` (`VM-XXXXXX`).
+
+```bash
+curl -X POST http://localhost:3010/memories/VM-000042/deprecate \
+  -H "Content-Type: application/json" \
+  -d '{ "reason": "Reemplazada por decision del 2026-04-25", "author": "agent" }'
+```
+
+### Body
+
+| Campo | Tipo | Descripcion |
+|---|---|---|
+| `reason` | string | Motivo de deprecacion (default: `Deprecado desde UI`) |
+| `author` | string | Autor (default: `ui`) |
+
+### Respuesta
+
+HTTP `200`. Devuelve el registro actualizado con `status: "deprecated"`.
+
+---
+
 ## POST /ingest — Ingestar un archivo
 
 Ingesta un archivo del filesystem, aplica denylist y politica de secretos, y guarda los chunks con embeddings.
