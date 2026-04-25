@@ -297,3 +297,23 @@ main { flex: 1; max-width: 960px; width: 100%; margin: 0 auto; padding: 24px 16p
   font-size: 11px; color: var(--muted); text-align: right;
   margin-top: 8px;
 }
+
+.reflect-summary-text {
+  font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5;
+}
+
+.reflect-type-badge {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .4px;
+  padding: 1px 6px; border-radius: 4px; margin-right: 6px;
+  background: rgba(250,204,21,.12); color: var(--yellow);
+}
+
+.reflect-action {
+  display: inline-block; font-size: 11px; color: var(--cyan);
+  margin-left: 8px; font-style: italic;
+}
+
+.reflect-ids {
+  display: inline-flex; gap: 4px; margin-left: 6px;
+}

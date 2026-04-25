@@ -251,47 +251,81 @@ async function doReflect() {
 
   try {
     const body = { limit };
-    if (project) body.project      = project;
-    if (repo)    body.repo_name    = repo;
-    if (focus)   body.focus        = focus;
+    if (project) body.project   = project;
+    if (repo)    body.repo_name = repo;
+    if (focus)   body.focus     = focus;
 
     const data = await apiPost('/reflect', body);
 
-    const { memories_analyzed = 0, findings = [], suggested_new_memories = [], suggested_deprecations = [] } = data;
+    // La respuesta usa analyzed_count, findings[]{type,description,memory_ids,suggested_action},
+    // suggested_new_memories[]{content,memory_type,criticality,tags},
+    // suggested_deprecations[] de IDs (strings)
+    const {
+      analyzed_count = 0,
+      summary = '',
+      findings = [],
+      suggested_new_memories = [],
+      suggested_deprecations = [],
+    } = data;
+
+    const typeLabel = { contradiction: 'Contradicción', consolidation: 'Consolidar', outdated: 'Desactualizada', redundant: 'Redundante' };
 
     const findingsHtml = findings.length
-      ? findings.map(f => `<li class="reflect-item reflect-finding">${escHtml(f)}</li>`).join('')
+      ? findings.map(f => {
+          const label = typeLabel[f.type] || f.type || '';
+          const ids   = Array.isArray(f.memory_ids) && f.memory_ids.length
+            ? `<span class="reflect-ids">${f.memory_ids.map(id => `<span class="public-id" title="Click para copiar" onclick="copyId('${escHtml(id)}')">${escHtml(id)}</span>`).join(' ')}</span>`
+            : '';
+          const action = f.suggested_action ? `<span class="reflect-action">${escHtml(f.suggested_action)}</span>` : '';
+          return `<li class="reflect-item reflect-finding">
+            ${label ? `<span class="reflect-type-badge">${label}</span>` : ''}
+            ${escHtml(f.description || '')}
+            ${ids}${action}
+          </li>`;
+        }).join('')
       : `<li class="reflect-item reflect-empty">Sin hallazgos relevantes.</li>`;
 
     const newMemHtml = suggested_new_memories.length
-      ? suggested_new_memories.map(m => `<li class="reflect-item reflect-new">${escHtml(m)}</li>`).join('')
+      ? suggested_new_memories.map(m => {
+          const meta = [m.memory_type, m.criticality].filter(Boolean).join(' · ');
+          const tags = Array.isArray(m.tags) && m.tags.length ? `<div class="card-tags">${m.tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>` : '';
+          return `<li class="reflect-item reflect-new">
+            ${meta ? `<span class="reflect-type-badge">${escHtml(meta)}</span>` : ''}
+            ${escHtml(m.content || '')}
+            ${tags}
+          </li>`;
+        }).join('')
       : `<li class="reflect-item reflect-empty">Sin sugerencias de nuevas memorias.</li>`;
 
+    // suggested_deprecations puede ser array de IDs (strings) u objetos {id, reason}
     const deprHtml = suggested_deprecations.length
       ? suggested_deprecations.map(d => {
-          const idLabel = d.id ? `<span class="public-id" title="Click para copiar" onclick="copyId('${escHtml(d.id)}')">${escHtml(d.id)}</span> — ` : '';
-          return `<li class="reflect-item reflect-deprecate">${idLabel}${escHtml(d.reason || '')}</li>`;
+          const id     = typeof d === 'string' ? d : (d.id || '');
+          const reason = typeof d === 'object' ? (d.reason || '') : '';
+          const idHtml = id ? `<span class="public-id" title="Click para copiar" onclick="copyId('${escHtml(id)}')">${escHtml(id)}</span>` : '';
+          return `<li class="reflect-item reflect-deprecate">${idHtml}${idHtml && reason ? ' — ' : ''}${escHtml(reason)}</li>`;
         }).join('')
       : `<li class="reflect-item reflect-empty">Sin deprecaciones sugeridas.</li>`;
 
     container.innerHTML = `
       <div class="reflect-summary">
-        <span class="reflect-count">${memories_analyzed}</span> memorias analizadas
+        <span class="reflect-count">${analyzed_count}</span> memorias analizadas
         ${focus ? `· foco: <em>${escHtml(focus)}</em>` : ''}
+        ${summary ? `<div class="reflect-summary-text">${escHtml(summary)}</div>` : ''}
       </div>
 
       <div class="reflect-section">
-        <div class="reflect-section-title reflect-title-finding">Hallazgos</div>
+        <div class="reflect-section-title reflect-title-finding">Hallazgos (${findings.length})</div>
         <ul class="reflect-list">${findingsHtml}</ul>
       </div>
 
       <div class="reflect-section">
-        <div class="reflect-section-title reflect-title-new">Memorias sugeridas</div>
+        <div class="reflect-section-title reflect-title-new">Memorias sugeridas (${suggested_new_memories.length})</div>
         <ul class="reflect-list">${newMemHtml}</ul>
       </div>
 
       <div class="reflect-section">
-        <div class="reflect-section-title reflect-title-deprecate">Deprecaciones sugeridas</div>
+        <div class="reflect-section-title reflect-title-deprecate">Deprecaciones sugeridas (${suggested_deprecations.length})</div>
         <ul class="reflect-list">${deprHtml}</ul>
       </div>
 

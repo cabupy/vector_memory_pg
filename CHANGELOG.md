@@ -5,6 +5,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.7] - 2026-04-25
+
+### Corregido
+- UI Reflect: la vista mostraba `[object Object]` porque el parser asumía arrays de strings; ahora renderiza correctamente la estructura real de `reflectMemories`:
+  - `findings[]` → `{ type, description, memory_ids, suggested_action }` — muestra badge de tipo, descripción, IDs clicables y acción sugerida
+  - `suggested_new_memories[]` → `{ content, memory_type, criticality, tags }` — muestra metadata y tags
+  - `suggested_deprecations[]` → array de IDs (strings) o `{ id, reason }` — soporta ambos formatos
+  - `analyzed_count` (nombre real del campo) en lugar de `memories_analyzed`
+  - `summary` del análisis mostrado debajo del conteo
+
+---
+
 ## [1.9.6] - 2026-04-25
 
 ### Agregado
