@@ -223,7 +223,7 @@ Esto es clave en proyectos de largo plazo, especialmente con múltiples repos y 
 
 # 5. Seguridad antes de indexar
 
-Estado: en progreso. Ya se agregó una denylist de paths sensibles antes de indexar y un detector de secretos por contenido antes de vectorizar. Quedan pendientes redacción automática, dry-run y logs de sanitización.
+Estado: completado. Denylist de paths sensibles, detector de 8 patrones de secretos, modo `block` (default) y `redact` (via `INGEST_SECRET_MODE`), flag `--dry-run` en CLI y campo `dry_run` en HTTP API, tabla `sanitization_log` y endpoint `GET /sanitization-log`.
 
 Como el sistema puede leer sesiones JSONL, documentos, archivos `.md` y memorias técnicas, es fundamental evitar guardar secretos.
 
@@ -512,7 +512,7 @@ Una inconsistencia entre README y schema puede hacer pensar que el proyecto est�
 
 # 11. Agregar metadata de fuente, autor, criticidad y tags
 
-Estado: en progreso. Ya se agregaron al schema los campos `criticality` y `tags`, con índices dedicados, y se conectaron con ingesta, HTTP API y MCP. Quedan pendientes campos como `author`, `created_by_agent`, `source_commit`, `module`, `updated_at` y `last_accessed_at`.
+Estado: parcialmente completado. Campos `criticality` y `tags` implementados con índices y conectados en ingesta, HTTP API y MCP. Pendientes: `author`, `created_by_agent`, `source_commit`, `module`, `updated_at`, `last_accessed_at`.
 
 Además de `source_type`, `source_path` y `metadata`, conviene enriquecer la memoria con campos más explícitos.
 
@@ -953,11 +953,11 @@ Algunas memorias pueden contener contexto sensible de clientes, integraciones o 
 ## Fase 5 — UX para developers
 
 ```text
-- [ ] CLI init-project.
-- [ ] CLI doctor.
-- [ ] CLI ingest.
-- [ ] CLI search.
-- [ ] Auto-detección de git remote.
+- [x] CLI init-project.
+- [x] CLI doctor.
+- [x] CLI ingest.
+- [x] CLI search.
+- [x] Auto-detección de git remote.
 - [ ] Ingesta automática de README.md / AGENTS.md / docs.
 ```
 
