@@ -5,6 +5,19 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.4] - 2026-04-25
+
+### Agregado
+- `docs/quickstart.md` — guía "primer uso en 5 minutos" con opción PostgreSQL local y Docker
+- `docs/integrations.md` — ejemplos de integración MCP para Claude Code, OpenCode y Cursor
+- `docs/client-js.md` — cliente HTTP para JS/TS con fetch nativo y clase TypeScript
+- `docs/client-python.md` — cliente HTTP para Python con httpx/requests, versión sync y async
+- `docs/http-api.md` — sección `GET /ui` con las 4 vistas documentadas; sección de session events
+- `docs/cli.md` — comando `worker --open`, instalación vía npm, Node 22, `VECTOR_MEMORY_DATABASE_URL`
+- `AGENTS.md` — sección de reglas de release (checklist: push, tag, GitHub release, npm publish)
+
+---
+
 ## [1.9.3] - 2026-04-25
 
 ### Cambiado
