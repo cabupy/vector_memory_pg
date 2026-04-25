@@ -31,7 +31,7 @@
     "rag"
   ],
   "bin": {
-    "vector-memory": "./src/cli.js"
+    "vector-memory": "src/cli.js"
   },
   "scripts": {
     "setup": "node src/setup-db.js",
