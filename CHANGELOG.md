@@ -5,6 +5,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.3] - 2026-04-25
+
+### Cambiado
+- README reescrito para reflejar el estado actual: instalación via npm, UI web, `worker --open`, `VECTOR_MEMORY_DATABASE_URL`, `~/.vector-memory.env`, tabla completa de 11 herramientas MCP, session events y content policy
+
+---
+
 ## [1.9.2] - 2026-04-25
 
 ### Agregado
