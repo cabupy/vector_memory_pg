@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/cabupy/vector_memory_pg.git"
+    "url": "git+https://github.com/cabupy/vector_memory_pg.git"
   },
   "bugs": {
     "url": "https://github.com/cabupy/vector_memory_pg/issues"
