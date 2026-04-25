@@ -581,18 +581,28 @@ async function cmdQuickstart() {
 async function cmdWorker(flags) {
   const port  = flags['port']  || process.env.PORT  || '3010';
   const host  = flags['host']  || process.env.HOST  || '127.0.0.1';
+  const open  = flags['open']  || false;
+
+  const uiUrl = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}/ui`;
 
   console.log(c.bold('\nvector-memory worker\n'));
-  console.log(`  Iniciando HTTP server en ${c.cyan(`http://${host}:${port}`)}`);
-  console.log(`  Endpoints de eventos activos:`);
-  console.log(`    POST /events/session-start`);
-  console.log(`    POST /events/post-tool-use`);
-  console.log(`    POST /events/session-end`);
-  console.log(`    GET  /events/sessions`);
+  console.log(`  HTTP server: ${c.cyan(`http://${host}:${port}`)}`);
+  console.log(`  UI local:    ${c.cyan(uiUrl)}`);
+  console.log(`  Eventos:     POST /events/session-{start,post-tool-use,end}`);
   console.log(`\n  Ctrl+C para detener\n`);
 
   const serverPath = resolve(__dirname, 'server.js');
   const env = { ...process.env, PORT: String(port), HOST: host };
+
+  // Abrir browser después de que el server arranque
+  if (open) {
+    setTimeout(() => {
+      const cmd = process.platform === 'win32' ? 'start'
+                : process.platform === 'darwin' ? 'open'
+                : 'xdg-open';
+      try { execSync(`${cmd} "${uiUrl}"`, { stdio: 'ignore' }); } catch { /* silencioso */ }
+    }, 1200);
+  }
 
   await new Promise((res) => {
     const child = spawn(process.execPath, [serverPath], { env, stdio: 'inherit' });
@@ -635,7 +645,8 @@ function printHelp(unknown) {
   console.log('    --target TARGET       Target para mcp-config: claude-code|opencode|cursor|openclaw');
   console.log('    --full                Levantar todos los servicios Docker (api incluida)');
   console.log('    --port PORT           Puerto para worker (default: 3010)');
-  console.log('    --host HOST           Host para worker (default: 127.0.0.1)\n');
+  console.log('    --host HOST           Host para worker (default: 127.0.0.1)');
+  console.log('    --open                Abrir UI en el browser al iniciar el worker\n');
 
   if (unknown) {
     console.error(c.red(`Comando desconocido: ${unknown}\n`));

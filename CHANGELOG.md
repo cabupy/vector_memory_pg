@@ -5,6 +5,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.2] - 2026-04-25
+
+### Agregado
+- `vector-memory worker --open` — abre la UI en el browser automáticamente al iniciar el server (macOS, Linux, Windows)
+- El output del worker ahora muestra la URL de la UI explícitamente
+
+---
+
 ## [1.9.1] - 2026-04-25
 
 ### Corregido / Mejorado
