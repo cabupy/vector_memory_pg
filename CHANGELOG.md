@@ -5,6 +5,26 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.7.0] - 2026-04-25
+
+### Agregado
+- `src/content-policy.js` — políticas de contenido: `@no-memory` omite la memoria, `<private>...</private>` redacta bloques privados antes de guardar
+- HTTP endpoints de eventos de sesión:
+  - `POST /events/session-start` — inicia sesión, inyecta contexto de memorias relevantes si `contextInjection.enabled` en `.vector-memory.json`
+  - `POST /events/post-tool-use` — guarda observaciones de tool-use con `auto_save` configurable
+  - `POST /events/session-end` — guarda resumen de sesión y cierra la sesión activa
+  - `GET /events/sessions` — lista sesiones activas (monitoring)
+- `saveSessionSummary()` en `query.js` — función reutilizable por HTTP API y MCP
+- MCP tool `save_session_summary` — el agente llama esta herramienta al final de cada sesión para persistir el resumen
+- `applyContentPolicy()` aplicado en `save_memory` y `save_session_summary` MCP: respeta `@no-memory` y `<private>`
+- CLI `vector-memory worker [--port PORT] [--host HOST]` — inicia el HTTP server en modo daemon, documentado para uso desde agentes
+- `.vector-memory.json` extendido con bloque `contextInjection: { enabled, limit }` — configura inyección de contexto en session-start
+
+### Cambiado
+- `server.js` refactorizado: helpers `readBody()` y `loadProjectConfig()`, sesiones activas en Map en memoria
+
+---
+
 ## [1.6.0] - 2026-04-25
 
 ### Agregado

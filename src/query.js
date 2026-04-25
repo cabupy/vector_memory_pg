@@ -163,6 +163,43 @@ export async function updateMemory(id, options = {}) {
   return updateMemoryById(id, updates);
 }
 
+/**
+ * Guarda el resumen de una sesión o una observación de tool-use como memoria.
+ * Usado por los event endpoints del HTTP server y la herramienta MCP save_session_summary.
+ */
+export async function saveSessionSummary(options) {
+  const content = options.content.trim();
+  const id = `session_${Date.now()}_${randomUUID().slice(0, 8)}`;
+  const embedding = await embedOne(content);
+
+  await insertMemory({
+    id,
+    content,
+    sourceType: "session",
+    sourcePath: options.sourcePath || `session://${options.sessionKey || "unknown"}`,
+    sessionKey: options.sessionKey || null,
+    organization: options.organization || null,
+    project: options.project || null,
+    repoName: options.repoName || null,
+    memoryType: options.memoryType || "session_summary",
+    status: "active",
+    criticality: options.criticality || "normal",
+    tags: options.tags || [],
+    lastVerifiedAt: null,
+    createdAt: new Date().toISOString(),
+    metadata: {
+      source: options.source || "event",
+      created_by_agent: true,
+      author: options.author || null,
+    },
+    chunkIndex: 0,
+    tokenCount: estimateTokens(content),
+    embedding,
+  });
+
+  return { id, content };
+}
+
 export async function verifyMemory(id, options = {}) {
   const verifiedAt = new Date().toISOString();
   return updateMemoryById(id, {

@@ -563,6 +563,29 @@ async function cmdQuickstart() {
   console.log(`  ${c.cyan('vector-memory mcp-config --target opencode')}  — config para tu agente\n`);
 }
 
+// ─── Cmd: worker ──────────────────────────────────────────────────────────────
+async function cmdWorker(flags) {
+  const port  = flags['port']  || process.env.PORT  || '3010';
+  const host  = flags['host']  || process.env.HOST  || '127.0.0.1';
+
+  console.log(c.bold('\nvector-memory worker\n'));
+  console.log(`  Iniciando HTTP server en ${c.cyan(`http://${host}:${port}`)}`);
+  console.log(`  Endpoints de eventos activos:`);
+  console.log(`    POST /events/session-start`);
+  console.log(`    POST /events/post-tool-use`);
+  console.log(`    POST /events/session-end`);
+  console.log(`    GET  /events/sessions`);
+  console.log(`\n  Ctrl+C para detener\n`);
+
+  const serverPath = resolve(__dirname, 'server.js');
+  const env = { ...process.env, PORT: String(port), HOST: host };
+
+  await new Promise((res) => {
+    const child = spawn(process.execPath, [serverPath], { env, stdio: 'inherit' });
+    child.on('close', (code) => res(code === 0));
+  });
+}
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function spawnNode(args) {
   return new Promise(res => {
@@ -581,6 +604,7 @@ function printHelp(unknown) {
   console.log('    migrate               Aplica el schema SQL en la DB');
   console.log('    ingest [path...]      Ingesta archivos usando la config del proyecto');
   console.log('    search <query>        Busca memorias por similitud semantica');
+  console.log('    worker                Inicia HTTP server con endpoints de eventos de sesion');
   console.log('    mcp-config            Genera snippet de config MCP copiable');
   console.log('    up                    docker compose up -d (solo PostgreSQL)');
   console.log('    down                  docker compose down\n');
@@ -595,7 +619,9 @@ function printHelp(unknown) {
   console.log('    --project PROJECT     Filtrar por proyecto');
   console.log('    --yes                 Aceptar defaults en init-project (modo no interactivo)');
   console.log('    --target TARGET       Target para mcp-config: claude-code|opencode|cursor|openclaw');
-  console.log('    --full                Levantar todos los servicios Docker (api incluida)\n');
+  console.log('    --full                Levantar todos los servicios Docker (api incluida)');
+  console.log('    --port PORT           Puerto para worker (default: 3010)');
+  console.log('    --host HOST           Host para worker (default: 127.0.0.1)\n');
 
   if (unknown) {
     console.error(c.red(`Comando desconocido: ${unknown}\n`));
@@ -629,6 +655,9 @@ async function main() {
       break;
     case 'mcp-config':
       await cmdMcpConfig(flags);
+      break;
+    case 'worker':
+      await cmdWorker(flags);
       break;
     case 'up':
       await cmdDockerUp(flags);

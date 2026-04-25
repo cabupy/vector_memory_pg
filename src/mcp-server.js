@@ -18,11 +18,13 @@ import {
   searchMemories,
   recentMemories,
   saveMemory,
+  saveSessionSummary,
   deprecateMemory,
   updateMemory,
   verifyMemory,
 } from "./query.js";
 import pool from "./db.js";
+import { applyContentPolicy } from "./content-policy.js";
 
 const memoryFiltersSchema = {
   types: z
@@ -110,8 +112,16 @@ server.tool(
     ...memoryMetadataSchema,
   },
   async (args) => {
+    const clean = applyContentPolicy(args.content);
+
+    if (!clean) {
+      return {
+        content: [{ type: "text", text: "Memoria omitida por política de contenido (@no-memory o contenido vacío tras redactar <private>)." }],
+      };
+    }
+
     const memory = await saveMemory({
-      content: args.content,
+      content: clean,
       author: args.author,
       sourcePath: args.source_path,
       ...normalizeMetadata(args),
@@ -122,6 +132,46 @@ server.tool(
         {
           type: "text",
           text: `Memoria guardada: ${memory.id}`,
+        },
+      ],
+    };
+  }
+);
+
+// --- Herramienta: save_session_summary ---
+
+server.tool(
+  "save_session_summary",
+  "Guarda el resumen o puntos clave de la sesión actual como memoria persistente. Llamar al final de cada sesión de trabajo.",
+  {
+    summary: z.string().min(1).describe("Resumen de la sesión o puntos clave a recordar"),
+    session_id: z.string().optional().describe("Identificador de la sesión (opcional, para trazabilidad)"),
+    author: z.string().optional().describe("Agente o usuario que genera el resumen"),
+    ...memoryMetadataSchema,
+  },
+  async (args) => {
+    const clean = applyContentPolicy(args.summary);
+
+    if (!clean) {
+      return {
+        content: [{ type: "text", text: "Resumen omitido por política de contenido (@no-memory o vacío tras redactar <private>)." }],
+      };
+    }
+
+    const memory = await saveSessionSummary({
+      content: clean,
+      sessionKey: args.session_id || null,
+      author: args.author,
+      source: "mcp",
+      memoryType: "session_summary",
+      ...normalizeMetadata(args),
+    });
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Resumen de sesión guardado: ${memory.id}`,
         },
       ],
     };
