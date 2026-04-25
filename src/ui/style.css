@@ -317,3 +317,28 @@ main { flex: 1; max-width: 960px; width: 100%; margin: 0 auto; padding: 24px 16p
 .reflect-ids {
   display: inline-flex; gap: 4px; margin-left: 6px;
 }
+
+.reflect-actions {
+  margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+.reflect-act-btn {
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
+  border-radius: 4px; border: 1px solid; cursor: pointer;
+  transition: all .15s; background: transparent;
+}
+.reflect-act-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.reflect-act-deprecate {
+  color: var(--orange); border-color: rgba(251,146,60,.4);
+}
+.reflect-act-deprecate:hover:not(:disabled) {
+  background: rgba(251,146,60,.1);
+}
+
+.reflect-act-save {
+  color: var(--green); border-color: rgba(0,255,136,.4);
+}
+.reflect-act-save:hover:not(:disabled) {
+  background: rgba(0,255,136,.1);
+}

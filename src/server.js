@@ -14,7 +14,7 @@ import { fileURLToPath } from "url";
 import { homedir } from "os";
 import dotenv from "dotenv";
 import { initDb, getStats, getSanitizationLog } from "./db.js";
-import { searchMemories, recentMemories, saveSessionSummary, searchMemoriesCompact, getMemories, memoryTimeline, reflectMemories } from "./query.js";
+import { searchMemories, recentMemories, saveMemory, deprecateMemory, saveSessionSummary, searchMemoriesCompact, getMemories, memoryTimeline, reflectMemories } from "./query.js";
 import pool from "./db.js";
 import { getDeniedIngestReason } from "./security.js";
 import { applyContentPolicy } from "./content-policy.js";
@@ -221,6 +221,47 @@ async function handleRequest(req, res) {
       const groups = await memoryTimeline({ limit, from, to, ...filters });
       res.writeHead(200);
       return res.end(JSON.stringify({ days: groups.length, timeline: groups }));
+    }
+
+    // POST /memories — guardar una memoria directamente
+    // body: { content, memory_type?, criticality?, tags?, project?, organization?, repo_name?, author?, auto_classify? }
+    if (path === "/memories" && req.method === "POST") {
+      const body = await readBody(req);
+      if (!body.content) {
+        res.writeHead(400);
+        return res.end(JSON.stringify({ error: "Campo 'content' requerido" }));
+      }
+      const { shouldSkip, reason: skipReason } = applyContentPolicy(body.content);
+      if (shouldSkip) {
+        res.writeHead(200);
+        return res.end(JSON.stringify({ skipped: true, reason: skipReason }));
+      }
+      const result = await saveMemory({
+        content:       body.content,
+        memory_type:   body.memory_type   || null,
+        criticality:   body.criticality   || null,
+        tags:          body.tags          || [],
+        project:       body.project       || null,
+        organization:  body.organization  || null,
+        repo_name:     body.repo_name     || null,
+        author:        body.author        || 'ui',
+        autoClassify:  !!body.auto_classify,
+      });
+      res.writeHead(201);
+      return res.end(JSON.stringify(result));
+    }
+
+    // POST /memories/:id/deprecate — deprecar una memoria por ID o public_id
+    // body: { reason?, author? }
+    if (/^\/memories\/[^/]+\/deprecate$/.test(path) && req.method === "POST") {
+      const id   = path.split('/')[2];
+      const body = await readBody(req);
+      const result = await deprecateMemory(id, {
+        reason: body.reason || 'Deprecado desde UI',
+        author: body.author || 'ui',
+      });
+      res.writeHead(200);
+      return res.end(JSON.stringify(result));
     }
 
     // POST /reflect — analizar memorias con IA

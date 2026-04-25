@@ -238,6 +238,39 @@ async function loadTimeline() {
   }
 }
 
+// ── Reflect actions ───────────────────────────────────────────────────────────
+async function deprecateFromReflect(id, reason, btnEl) {
+  if (!confirm(`¿Deprecar ${id}?\n\nRazón: ${reason}`)) return;
+  btnEl.disabled = true;
+  btnEl.textContent = '…';
+  try {
+    await apiPost(`/memories/${encodeURIComponent(id)}/deprecate`, { reason, author: 'ui-reflect' });
+    btnEl.textContent = 'Deprecado';
+    btnEl.style.color = 'var(--muted)';
+    toast(`Deprecado: ${id}`);
+  } catch (err) {
+    btnEl.disabled = false;
+    btnEl.textContent = 'Deprecar';
+    toast(`Error: ${err.message}`, 3000);
+  }
+}
+
+async function saveReflectMemory(content, memory_type, criticality, tags, btnEl) {
+  btnEl.disabled = true;
+  btnEl.textContent = '…';
+  try {
+    await apiPost('/memories', { content, memory_type, criticality, tags, author: 'ui-reflect' });
+    btnEl.textContent = 'Guardada';
+    btnEl.style.color = 'var(--green)';
+    toast('Memoria guardada');
+    loadStatsPill();
+  } catch (err) {
+    btnEl.disabled = false;
+    btnEl.textContent = 'Guardar';
+    toast(`Error: ${err.message}`, 3000);
+  }
+}
+
 // ── View: Reflect ─────────────────────────────────────────────────────────────
 async function doReflect() {
   const project = $('#reflect-project').value.trim() || null;
@@ -271,39 +304,63 @@ async function doReflect() {
     const typeLabel = { contradiction: 'Contradicción', consolidation: 'Consolidar', outdated: 'Desactualizada', redundant: 'Redundante' };
 
     const findingsHtml = findings.length
-      ? findings.map(f => {
+      ? findings.map((f, fi) => {
           const label = typeLabel[f.type] || f.type || '';
           const ids   = Array.isArray(f.memory_ids) && f.memory_ids.length
             ? `<span class="reflect-ids">${f.memory_ids.map(id => `<span class="public-id" title="Click para copiar" onclick="copyId('${escHtml(id)}')">${escHtml(id)}</span>`).join(' ')}</span>`
             : '';
           const action = f.suggested_action ? `<span class="reflect-action">${escHtml(f.suggested_action)}</span>` : '';
+          // Botón deprecar si la acción sugerida es deprecar y hay IDs
+          const deprButtons = (f.suggested_action === 'deprecate' && Array.isArray(f.memory_ids))
+            ? f.memory_ids.map(id =>
+                `<button class="reflect-act-btn reflect-act-deprecate" id="rfind-${fi}-${escHtml(id)}"
+                  onclick="deprecateFromReflect('${escHtml(id)}','${escHtml(f.description || '')}',this)">
+                  Deprecar ${escHtml(id)}
+                </button>`).join('')
+            : '';
           return `<li class="reflect-item reflect-finding">
             ${label ? `<span class="reflect-type-badge">${label}</span>` : ''}
             ${escHtml(f.description || '')}
             ${ids}${action}
+            ${deprButtons ? `<div class="reflect-actions">${deprButtons}</div>` : ''}
           </li>`;
         }).join('')
       : `<li class="reflect-item reflect-empty">Sin hallazgos relevantes.</li>`;
 
     const newMemHtml = suggested_new_memories.length
-      ? suggested_new_memories.map(m => {
+      ? suggested_new_memories.map((m, mi) => {
           const meta = [m.memory_type, m.criticality].filter(Boolean).join(' · ');
           const tags = Array.isArray(m.tags) && m.tags.length ? `<div class="card-tags">${m.tags.map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}</div>` : '';
+          const tagsJson = escHtml(JSON.stringify(Array.isArray(m.tags) ? m.tags : []));
           return `<li class="reflect-item reflect-new">
             ${meta ? `<span class="reflect-type-badge">${escHtml(meta)}</span>` : ''}
             ${escHtml(m.content || '')}
             ${tags}
+            <div class="reflect-actions">
+              <button class="reflect-act-btn reflect-act-save" id="rnew-${mi}"
+                onclick="saveReflectMemory('${escHtml(m.content || '')}','${escHtml(m.memory_type || '')}','${escHtml(m.criticality || '')}',${tagsJson},this)">
+                Guardar memoria
+              </button>
+            </div>
           </li>`;
         }).join('')
       : `<li class="reflect-item reflect-empty">Sin sugerencias de nuevas memorias.</li>`;
 
     // suggested_deprecations puede ser array de IDs (strings) u objetos {id, reason}
     const deprHtml = suggested_deprecations.length
-      ? suggested_deprecations.map(d => {
+      ? suggested_deprecations.map((d, di) => {
           const id     = typeof d === 'string' ? d : (d.id || '');
           const reason = typeof d === 'object' ? (d.reason || '') : '';
           const idHtml = id ? `<span class="public-id" title="Click para copiar" onclick="copyId('${escHtml(id)}')">${escHtml(id)}</span>` : '';
-          return `<li class="reflect-item reflect-deprecate">${idHtml}${idHtml && reason ? ' — ' : ''}${escHtml(reason)}</li>`;
+          return `<li class="reflect-item reflect-deprecate">
+            ${idHtml}${idHtml && reason ? ' — ' : ''}${escHtml(reason)}
+            ${id ? `<div class="reflect-actions">
+              <button class="reflect-act-btn reflect-act-deprecate" id="rdepr-${di}"
+                onclick="deprecateFromReflect('${escHtml(id)}','${escHtml(reason || 'Sugerido por reflect_memories')}',this)">
+                Deprecar
+              </button>
+            </div>` : ''}
+          </li>`;
         }).join('')
       : `<li class="reflect-item reflect-empty">Sin deprecaciones sugeridas.</li>`;
 
@@ -434,3 +491,5 @@ document.addEventListener('DOMContentLoaded', () => {
 // Expose for inline onclick
 window.copyId = copyId;
 window.toggleExpand = toggleExpand;
+window.deprecateFromReflect = deprecateFromReflect;
+window.saveReflectMemory = saveReflectMemory;

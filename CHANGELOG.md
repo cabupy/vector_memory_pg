@@ -5,6 +5,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.9.8] - 2026-04-25
+
+### Agregado
+- HTTP API: `POST /memories` — guarda una memoria directamente sin pasar por ingesta de archivo; acepta `auto_classify`
+- HTTP API: `POST /memories/:id/deprecate` — depreca una memoria por ID o public_id con razón y autor
+- UI Reflect: botón **Deprecar** en deprecaciones sugeridas y en hallazgos con `suggested_action: "deprecate"` — llama al nuevo endpoint y actualiza el botón en pantalla
+- UI Reflect: botón **Guardar memoria** en memorias sugeridas — guarda directamente con el tipo, criticidad y tags sugeridos por la IA
+
+---
+
 ## [1.9.7] - 2026-04-25
 
 ### Corregido
