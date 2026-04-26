@@ -2,7 +2,7 @@
 // cli.js — vector-memory CLI
 // Comandos: init-project | doctor | ingest | search | quickstart | mcp-config | migrate | up | down
 
-import { readFile, writeFile, stat, readdir, access } from 'fs/promises';
+import { readFile, writeFile, stat, readdir, access, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { resolve, join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -634,30 +634,785 @@ function spawnNode(args) {
   });
 }
 
+// ─── SLASH COMMAND CONTENT ────────────────────────────────────────────────────
+const SLASH_COMMANDS = {
+  'vm-context': {
+    title: 'Establecer contexto desde vector-memory',
+    content: `Establece contexto técnico desde vector-memory antes de comenzar la tarea.
+
+Pasos:
+1. Usa la herramienta MCP \`recent_memories\` (limit: 5) para ver trabajo reciente
+2. Usa \`search_memories_compact\` con el tema: $ARGUMENTS
+3. Resume los hallazgos: decisiones activas, bugs conocidos, restricciones críticas
+4. Ignora memorias con status=deprecated salvo pedido explícito
+5. Cita las memorias relevantes por su public_id (ej: VM-000042)
+
+Si $ARGUMENTS está vacío, usa el contexto del archivo o tarea actual.`,
+  },
+  'vm-search': {
+    title: 'Buscar en vector-memory',
+    content: `Busca en vector-memory memorias técnicas relevantes para la tarea actual.
+
+1. Usa \`search_memories_compact\` con query: $ARGUMENTS
+2. Expande con \`get_memories\` los IDs más importantes si necesitas contenido completo
+3. Prioriza: activas > verificadas > criticidad alta
+4. Ignora memorias deprecated salvo pedido explícito
+5. Cita cada memoria usada por su public_id (ej: VM-000042)`,
+  },
+  'vm-save': {
+    title: 'Guardar memoria técnica',
+    content: `Guarda un aprendizaje técnico importante en vector-memory.
+
+Usa la herramienta MCP \`save_memory\`:
+- content: $ARGUMENTS (o pide descripción al usuario si está vacío)
+- Incluye: qué, por qué, cómo aplica, cuándo NO aplica
+- Usa \`auto_classify: true\` si no tienes claro el tipo o criticidad
+- Confirma al usuario el public_id asignado (ej: VM-000042)
+
+Tipos útiles: decision, bug, pattern, constraint, architecture, security`,
+  },
+  'vm-reflect': {
+    title: 'Reflexionar sobre la memoria acumulada',
+    content: `Ejecuta Reflect en vector-memory para analizar la calidad del conocimiento acumulado.
+
+1. Usa \`reflect_memories\` (limit: 20; puedes agregar project/focus: $ARGUMENTS)
+2. Resume hallazgos por tipo: contradicción, duplicado, gap
+3. Para deprecaciones sugeridas: evalúa y usa \`deprecate_memory\` si aplica
+4. Para memorias nuevas sugeridas: evalúa y usa \`save_memory\` si aportan valor
+5. Reporta: X analizadas, Y acciones tomadas
+
+Reflect solo sugiere. No modifica nada.`,
+  },
+  'vm-iterate': {
+    title: 'Mejorar memoria en ciclos',
+    content: `Mejora la calidad de la memoria técnica del proyecto en ciclos.
+
+Modo: $ARGUMENTS (consolidar | duplicados | deprecated | gaps | vacío = análisis completo)
+
+1. Usa \`reflect_memories\` para obtener análisis completo
+2. Consolida duplicados actualizando con \`update_memory\`
+3. Depreca memorias obsoletas con \`deprecate_memory\` + razón clara
+4. Guarda memorias valiosas de las sugerencias con \`save_memory\`
+5. Verifica memorias críticas vigentes con \`verify_memory\`
+6. Cierra con \`save_session_summary\`
+
+Resumen final: memorias activas antes/después, acciones tomadas.`,
+  },
+};
+
+// ─── SKILL CONTENT (instrucciones por agente) ─────────────────────────────────
+const SKILL_CONTENT = {
+  'claude-code': `
+## vector-memory — Instrucciones de uso
+
+Tienes acceso a vector-memory-pg como memoria técnica persistente del proyecto.
+Úsala en cada sesión de trabajo.
+
+### Buscar antes de modificar
+Antes de modificar código importante, usa \`search_memories_compact\` con el tema relevante.
+Prioriza memorias \`active\` y verificadas. Ignora \`deprecated\` salvo pedido explícito.
+Expande con \`get_memories\` cuando necesites el contenido completo.
+
+### Cuándo guardar
+Usa \`save_memory\` con \`auto_classify: true\` para:
+- Decisiones de arquitectura no obvias
+- Bugs con causa raíz importante
+- Restricciones o convenciones del sistema
+- Patrones que funcionaron (o fallaron)
+
+### Cuándo usar Reflect
+Usa \`reflect_memories\` cuando detectes contradicciones entre memorias
+o antes de sesiones de refactoring. Reflect solo sugiere; aplica manualmente.
+
+### Citar memorias
+Siempre cita por public_id: "Según VM-000042, la restricción es..."
+
+### Al finalizar sesión
+Llama \`save_session_summary\` con: qué se hizo, decisiones tomadas, qué quedó pendiente.
+`,
+  'opencode': `
+## vector-memory — Instrucciones de uso
+
+Tienes acceso a vector-memory-pg como memoria técnica persistente.
+
+- Buscar: usa \`search_memories_compact\` antes de modificar código importante
+- Prioriza activas y verificadas; ignora deprecated salvo pedido explícito
+- Guardar: usa \`save_memory\` con \`auto_classify: true\` para decisiones, bugs, restricciones
+- Reflect: usa \`reflect_memories\` ante contradicciones (solo sugiere)
+- Citar: siempre por public_id (ej: VM-000042)
+- Al finalizar: llama \`save_session_summary\`
+`,
+  'codex': `
+## vector-memory — Instrucciones de uso
+
+Tienes acceso a vector-memory-pg como memoria técnica persistente.
+
+- Busca antes de modificar código: \`search_memories_compact\`
+- Prioriza memorias activas y verificadas; ignora deprecated
+- Guarda aprendizajes: \`save_memory\` con \`auto_classify: true\`
+- Ante contradicciones: \`reflect_memories\` (solo sugiere)
+- Cita por public_id: "Según VM-000042..."
+- Al finalizar: \`save_session_summary\`
+`,
+  'openclaw': `
+## vector-memory — Instrucciones de uso
+
+Tienes acceso a vector-memory-pg como memoria técnica persistente.
+
+- Busca antes de modificar código: \`search_memories_compact\`
+- Prioriza memorias activas y verificadas; ignora deprecated
+- Guarda aprendizajes: \`save_memory\` con \`auto_classify: true\`
+- Ante contradicciones: \`reflect_memories\` (solo sugiere)
+- Cita por public_id: "Según VM-000042..."
+- Al finalizar: \`save_session_summary\`
+`,
+};
+
+const CURSOR_RULE_CONTENT = `---
+description: >
+  Reglas de uso de vector-memory-pg para agentes IA.
+  Buscar antes de modificar, guardar aprendizajes,
+  Reflect ante contradicciones, citar por public_id.
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# vector-memory-pg — Reglas de uso
+
+Tienes acceso a vector-memory-pg como memoria técnica persistente del proyecto.
+
+## Cuándo buscar en memoria
+
+Busca con \`search_memories_compact\` antes de:
+- Modificar arquitectura o patrones del proyecto
+- Implementar features similares a trabajo previo
+- Tomar decisiones de tecnología o dependencias
+- Resolver bugs que podrían estar documentados
+
+Expande con \`get_memories\` si necesitas el contenido completo.
+
+## Prioridad de memorias
+
+1. \`status: active\` con \`last_verified_at\` reciente — máxima confianza
+2. \`criticality: critical\` o \`high\` — no ignorar nunca
+3. \`status: deprecated\` — ignorar salvo pedido explícito del usuario
+
+## Cuándo guardar en memoria
+
+Usa \`save_memory\` con \`auto_classify: true\` cuando:
+- Tomas una decisión de arquitectura no obvia
+- Encuentras un bug con causa raíz importante
+- Descubres una restricción o convención del sistema
+- La sesión cierra con aprendizajes valiosos
+
+## Cuándo usar Reflect
+
+Usa \`reflect_memories\` cuando:
+- Detectas contradicciones entre memorias
+- El proyecto tiene muchas memorias sin revisar
+- Antes de una sesión de refactoring importante
+
+Reflect solo sugiere. No modifica nada.
+
+## Cómo citar memorias
+
+Siempre cita por \`public_id\`:
+- "Según VM-000042, la columna es GENERATED ALWAYS AS..."
+- "Ver VM-000007 para las restricciones de autenticación"
+
+## Al finalizar cada sesión
+
+Usa \`save_session_summary\` con: qué se hizo, decisiones tomadas, qué quedó pendiente.
+`;
+
+// ─── helpers de banco ─────────────────────────────────────────────────────────
+function parseBankName(name) {
+  const idx = name.indexOf('/');
+  if (idx > 0) return [name.slice(0, idx), name.slice(idx + 1)];
+  return [null, name];
+}
+
+async function showBankStats(client, name) {
+  const [org, project] = parseBankName(name);
+  const whereClause = org
+    ? `organization = $1 AND project = $2`
+    : `project = $1`;
+  const params = org ? [org, project] : [project];
+
+  const res = await client.query(`
+    SELECT
+      COUNT(*)                                                              AS total,
+      SUM(CASE WHEN status = 'active'     THEN 1 ELSE 0 END)              AS active,
+      SUM(CASE WHEN status = 'deprecated' THEN 1 ELSE 0 END)              AS deprecated,
+      SUM(CASE WHEN criticality IN ('critical','high') THEN 1 ELSE 0 END) AS high_crit,
+      array_agg(DISTINCT memory_type)
+        FILTER (WHERE memory_type IS NOT NULL)                             AS types,
+      MAX(created_at)                                                      AS latest
+    FROM memories
+    WHERE ${whereClause}
+  `, params);
+
+  const r = res.rows[0];
+  console.log(c.bold(`\nvector-memory bank show — ${name}\n`));
+  console.log(`  Total:      ${r.total}`);
+  console.log(`  Activas:    ${r.active}`);
+  console.log(`  Deprecated: ${r.deprecated}`);
+  console.log(`  Críticas:   ${r.high_crit}`);
+  console.log(`  Tipos:      ${(r.types || []).join(', ') || '—'}`);
+  console.log(`  Última:     ${r.latest ? new Date(r.latest).toISOString().slice(0, 10) : '—'}`);
+  console.log('');
+}
+
+// ─── COMMAND: skills install ──────────────────────────────────────────────────
+async function cmdSkillsInstall(flags) {
+  const target  = String(flags.target || 'all');
+  const dir     = flags.dir ? resolve(flags.dir) : process.cwd();
+  const yes     = !!flags.yes;
+  const targets = target === 'all'
+    ? ['claude-code', 'cursor', 'opencode', 'codex', 'openclaw']
+    : target.split(',').map(t => t.trim());
+
+  if (!flags._noHeader) console.log(c.bold('\nvector-memory skills install\n'));
+
+  const rl  = createInterface({ input: process.stdin, output: process.stdout });
+  const ask = q => new Promise(res => {
+    if (yes) { res('s'); return; }
+    rl.question(`  ${q} [S/n]: `, ans => res(ans.trim().toLowerCase() || 's'));
+  });
+
+  for (const t of targets) await installSkillForTarget(t, dir, ask);
+  rl.close();
+}
+
+async function installSkillForTarget(target, dir, ask) {
+  console.log(c.dim(`\n  → ${target}`));
+
+  if (target === 'cursor') {
+    const destDir  = join(dir, '.cursor', 'rules');
+    const destFile = join(destDir, 'vector-memory.mdc');
+    const relPath  = '.cursor/rules/vector-memory.mdc';
+    if (existsSync(destFile)) {
+      const ok = await ask(`    ${relPath} ya existe. ¿Sobrescribir?`);
+      if (!ok.startsWith('s') && !ok.startsWith('y')) { console.log(c.dim('    Omitido.')); return; }
+    } else {
+      const ok = await ask(`    ¿Crear ${relPath}?`);
+      if (!ok.startsWith('s') && !ok.startsWith('y')) { console.log(c.dim('    Omitido.')); return; }
+    }
+    await mkdir(destDir, { recursive: true });
+    await writeFile(destFile, CURSOR_RULE_CONTENT);
+    console.log(c.green(`    ✓ ${relPath}`));
+    return;
+  }
+
+  const skillContent = SKILL_CONTENT[target];
+  if (!skillContent) { console.log(c.dim(`    Target no soportado: ${target}`)); return; }
+
+  const isClaudeCode = target === 'claude-code';
+  const targetFile   = isClaudeCode ? 'CLAUDE.md' : 'AGENTS.md';
+  const filePath     = join(dir, targetFile);
+  const marker       = '<!-- vector-memory-skill -->';
+
+  let existing = '';
+  if (existsSync(filePath)) existing = await readFile(filePath, 'utf-8');
+
+  if (existing.includes(marker)) {
+    console.log(c.dim(`    ${targetFile} ya contiene instrucciones de vector-memory`));
+    return;
+  }
+
+  const block  = `\n${marker}\n${skillContent.trim()}\n<!-- /vector-memory-skill -->\n`;
+  const action = existsSync(filePath)
+    ? `¿Agregar instrucciones de vector-memory a ${targetFile}?`
+    : `¿Crear ${targetFile} con instrucciones de vector-memory?`;
+  const ok = await ask(`    ${action}`);
+  if (!ok.startsWith('s') && !ok.startsWith('y')) { console.log(c.dim('    Omitido.')); return; }
+
+  if (existsSync(filePath)) {
+    await writeFile(filePath, existing.trimEnd() + '\n' + block);
+  } else {
+    await writeFile(filePath, `# ${targetFile}\n${block}`);
+  }
+  console.log(c.green(`    ✓ ${targetFile} actualizado`));
+}
+
+// ─── COMMAND: commands install ────────────────────────────────────────────────
+async function cmdCommandsInstall(flags) {
+  const target  = String(flags.target || 'all');
+  const dir     = flags.dir ? resolve(flags.dir) : process.cwd();
+  const yes     = !!flags.yes;
+  const allTargets = ['claude-code', 'opencode'];
+  const targets = target === 'all'
+    ? allTargets
+    : target.split(',').map(t => t.trim()).filter(t => allTargets.includes(t));
+
+  if (!flags._noHeader) console.log(c.bold('\nvector-memory commands install\n'));
+
+  if (targets.length === 0) {
+    console.log(c.dim('  Slash commands disponibles para: claude-code, opencode'));
+    console.log(c.dim('  Para cursor/codex/openclaw usa: vector-memory skills install\n'));
+    return;
+  }
+
+  const rl  = createInterface({ input: process.stdin, output: process.stdout });
+  const ask = q => new Promise(res => {
+    if (yes) { res('s'); return; }
+    rl.question(`  ${q} [S/n]: `, ans => res(ans.trim().toLowerCase() || 's'));
+  });
+
+  for (const t of targets) await installCommandsForTarget(t, dir, ask);
+  rl.close();
+}
+
+async function installCommandsForTarget(target, dir, ask) {
+  console.log(c.dim(`\n  → ${target}`));
+  const commandsDir = target === 'claude-code'
+    ? join(dir, '.claude', 'commands')
+    : join(dir, '.opencode', 'commands');
+  const relDir = commandsDir.startsWith(dir + '/') ? commandsDir.slice(dir.length + 1) : commandsDir;
+
+  if (!existsSync(commandsDir)) {
+    const ok = await ask(`    ¿Crear ${relDir} e instalar slash commands?`);
+    if (!ok.startsWith('s') && !ok.startsWith('y')) { console.log(c.dim('    Omitido.')); return; }
+    await mkdir(commandsDir, { recursive: true });
+  }
+
+  let installed = 0;
+  for (const [name, def] of Object.entries(SLASH_COMMANDS)) {
+    const file = join(commandsDir, `${name}.md`);
+    if (existsSync(file)) { console.log(c.dim(`    ${name}.md ya existe`)); continue; }
+    await writeFile(file, `# ${def.title}\n\n${def.content}\n`);
+    console.log(c.green(`    ✓ ${name}.md`));
+    installed++;
+  }
+
+  if (installed > 0) {
+    const cmds = Object.keys(SLASH_COMMANDS).map(k => `/${k}`).join(', ');
+    console.log(c.dim(`\n    Instalados en ${relDir}`));
+    console.log(c.dim(`    Comandos: ${cmds}`));
+  }
+}
+
+// ─── COMMAND: init --tools ────────────────────────────────────────────────────
+async function cmdInitWithTools(flags) {
+  const toolsRaw = String(flags.tools || 'claude-code');
+  const tools    = toolsRaw.split(',').map(t => t.trim());
+  const yes      = !!flags.yes;
+
+  console.log(c.bold('\nvector-memory init --tools\n'));
+  console.log(c.dim(`  Herramientas: ${tools.join(', ')}\n`));
+
+  // 1. .vector-memory.json
+  if (!findConfigFile()) {
+    console.log(c.dim('  No se encontró .vector-memory.json — creando...\n'));
+    await cmdInitProject({ ...flags, yes: true });
+  } else {
+    console.log(c.green('  ✓ .vector-memory.json ya existe'));
+  }
+
+  // 2. Skills
+  await cmdSkillsInstall({ target: tools.join(','), yes, _noHeader: true });
+
+  // 3. Slash commands
+  await cmdCommandsInstall({ target: tools.join(','), yes, _noHeader: true });
+
+  // 4. MCP config
+  console.log(c.bold('\n  Configuración MCP:\n'));
+  for (const tool of tools) {
+    console.log(c.dim(`  ── ${tool} ──\n`));
+    await cmdMcpConfig({ target: tool });
+  }
+
+  // 5. Próximos pasos
+  console.log(c.bold('  Próximos pasos:\n'));
+  console.log(`  ${c.cyan('vector-memory doctor')}           — verificar configuración`);
+  console.log(`  ${c.cyan('vector-memory ingest')}            — indexar archivos del proyecto`);
+  console.log(`  ${c.cyan('vector-memory worker --open')}     — abrir UI local\n`);
+}
+
+// ─── COMMAND: bank ────────────────────────────────────────────────────────────
+async function cmdBank({ subcommand, args, flags }) {
+  if (!subcommand || subcommand === 'help') {
+    console.log('\n  Uso:');
+    console.log('    vector-memory bank ls                   Lista todos los bancos de memoria');
+    console.log('    vector-memory bank create <nombre>      Crea un banco de memoria nombrado');
+    console.log('    vector-memory bank show   <nombre>      Estadísticas de un banco');
+    console.log('\n  Nombres: proyecto   o   organización/proyecto');
+    console.log('  Ejemplo: vector-memory bank create procesa/security-standards\n');
+    return;
+  }
+
+  // create no necesita DB
+  if (subcommand === 'create') {
+    const name = args[0];
+    if (!name) { console.error(c.red('  Uso: vector-memory bank create <nombre>')); process.exit(1); }
+
+    const [org, project] = parseBankName(name);
+    const banksFile      = join(homedir(), '.vector-memory-banks.json');
+    let banks = {};
+    if (existsSync(banksFile)) {
+      try { banks = JSON.parse(await readFile(banksFile, 'utf-8')); } catch { /* */ }
+    }
+    if (banks[name]) {
+      console.log(c.yellow(`\n  El banco "${name}" ya existe en ${banksFile}\n`));
+      return;
+    }
+    banks[name] = {
+      organization: org     || null,
+      project:      project || null,
+      description:  flags.description || flags.desc || '',
+      created_at:   new Date().toISOString(),
+    };
+    await writeFile(banksFile, JSON.stringify(banks, null, 2) + '\n');
+    console.log(c.bold('\nvector-memory bank create\n'));
+    console.log(c.green(`  ✓ Banco "${name}" registrado en ${banksFile}\n`));
+    console.log(c.dim('  Para agregar documentos:'));
+    console.log(`  ${c.cyan(`vector-memory doc create ${name} <archivo>`)}\n`);
+    return;
+  }
+
+  // ls y show necesitan DB
+  const dbUrl = process.env.VECTOR_MEMORY_DATABASE_URL || process.env.DATABASE_URL;
+  if (!dbUrl) { console.error(c.red('  VECTOR_MEMORY_DATABASE_URL no configurado')); process.exit(1); }
+
+  const pg     = await import('pg');
+  const client = new pg.default.Client({ connectionString: dbUrl });
+  await client.connect();
+
+  try {
+    if (subcommand === 'ls') {
+      const res = await client.query(`
+        SELECT
+          COALESCE(organization, '') AS org,
+          COALESCE(project, '')      AS project,
+          COUNT(*)                   AS total,
+          SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
+          MAX(created_at)            AS latest
+        FROM memories
+        GROUP BY organization, project
+        ORDER BY total DESC
+      `);
+      console.log(c.bold('\nvector-memory bank ls\n'));
+      if (res.rows.length === 0) { console.log(c.dim('  No hay memorias en la base de datos.\n')); return; }
+      for (const row of res.rows) {
+        const bank   = [row.org, row.project].filter(Boolean).join('/') || c.dim('(sin banco)');
+        const latest = row.latest ? new Date(row.latest).toISOString().slice(0, 10) : '—';
+        console.log(
+          `  ${c.cyan(bank.padEnd(36))}` +
+          `  ${String(row.total).padStart(4)} memorias` +
+          `  ${String(row.active).padStart(3)} activas` +
+          `  ${c.dim(latest)}`
+        );
+      }
+      console.log('');
+    } else if (subcommand === 'show') {
+      const name = args[0];
+      if (!name) { console.error(c.red('  Uso: vector-memory bank show <nombre>')); process.exit(1); }
+      await showBankStats(client, name);
+    } else {
+      console.log(c.yellow(`  Subcomando desconocido: ${subcommand}`));
+    }
+  } finally {
+    await client.end();
+  }
+}
+
+// ─── COMMAND: doc ─────────────────────────────────────────────────────────────
+async function cmdDoc({ subcommand, args, flags }) {
+  if (!subcommand || subcommand === 'help') {
+    console.log('\n  Uso:');
+    console.log('    vector-memory doc ls <banco>              Lista documentos de un banco');
+    console.log('    vector-memory doc create <banco> <file>   Ingesta un archivo en un banco\n');
+    return;
+  }
+
+  const dbUrl = process.env.VECTOR_MEMORY_DATABASE_URL || process.env.DATABASE_URL;
+
+  if (subcommand === 'ls') {
+    const name = args[0];
+    if (!name) { console.error(c.red('  Uso: vector-memory doc ls <banco>')); process.exit(1); }
+    if (!dbUrl) { console.error(c.red('  VECTOR_MEMORY_DATABASE_URL no configurado')); process.exit(1); }
+
+    const [org, project] = parseBankName(name);
+    const whereClause    = org ? `organization = $1 AND project = $2` : `project = $1`;
+    const params         = org ? [org, project] : [project];
+
+    const pg     = await import('pg');
+    const client = new pg.default.Client({ connectionString: dbUrl });
+    await client.connect();
+    try {
+      const res = await client.query(`
+        SELECT public_id, source_path, memory_type, status, created_at,
+               LEFT(content, 80) AS snippet
+        FROM memories
+        WHERE ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT 50
+      `, params);
+      console.log(c.bold(`\nvector-memory doc ls — ${name}\n`));
+      if (res.rows.length === 0) { console.log(c.dim('  Sin documentos en este banco.\n')); return; }
+      for (const r of res.rows) {
+        const pid    = c.cyan((r.public_id || '—').padEnd(12));
+        const date   = new Date(r.created_at).toISOString().slice(0, 10);
+        const status = r.status !== 'active' ? c.yellow(` [${r.status}]`) : '';
+        const path   = r.source_path ? c.dim(`  ${r.source_path}`) : '';
+        console.log(`  ${pid}  ${c.dim(date)}${status}${path}`);
+        console.log(`         ${r.snippet.replace(/\n/g, ' ')}…`);
+      }
+      console.log('');
+    } finally {
+      await client.end();
+    }
+
+  } else if (subcommand === 'create') {
+    const name     = args[0];
+    const filePath = args[1];
+    if (!name || !filePath) {
+      console.error(c.red('  Uso: vector-memory doc create <banco> <archivo>'));
+      process.exit(1);
+    }
+    const [org, project] = parseBankName(name);
+    if (org)     process.env.MEMORY_ORGANIZATION = org;
+    if (project) process.env.MEMORY_PROJECT      = project;
+
+    console.log(c.bold(`\nvector-memory doc create — ${name}\n`));
+    console.log(c.dim(`  org=${org || '-'}  project=${project}  archivo=${filePath}\n`));
+    await cmdIngest({ positional: [filePath], flags });
+
+  } else {
+    console.log(c.yellow(`  Subcomando desconocido: ${subcommand}`));
+  }
+}
+
+// ─── COMMAND: manifest ────────────────────────────────────────────────────────
+async function cmdManifest({ bankName, flags }) {
+  if (!bankName) {
+    console.error(c.red('  Uso: vector-memory manifest <banco>'));
+    console.error(c.dim('  Ejemplo: vector-memory manifest procesa/security-standards'));
+    process.exit(1);
+  }
+  const dbUrl = process.env.VECTOR_MEMORY_DATABASE_URL || process.env.DATABASE_URL;
+  if (!dbUrl) { console.error(c.red('  VECTOR_MEMORY_DATABASE_URL no configurado')); process.exit(1); }
+
+  const [org, project] = parseBankName(bankName);
+  const whereClause    = org ? `organization = $1 AND project = $2` : `project = $1`;
+  const params         = org ? [org, project] : [project];
+
+  const pg     = await import('pg');
+  const client = new pg.default.Client({ connectionString: dbUrl });
+  await client.connect();
+
+  try {
+    const [statsRes, typesRes, critRes, tagsRes, verifiedRes] = await Promise.all([
+      client.query(`
+        SELECT
+          COUNT(*)                                                              AS total,
+          SUM(CASE WHEN status = 'active'     THEN 1 ELSE 0 END)              AS active,
+          SUM(CASE WHEN status = 'deprecated' THEN 1 ELSE 0 END)              AS deprecated,
+          SUM(CASE WHEN criticality IN ('critical','high') THEN 1 ELSE 0 END) AS high_crit
+        FROM memories WHERE ${whereClause}
+      `, params),
+      client.query(`
+        SELECT memory_type, COUNT(*) AS n FROM memories
+        WHERE ${whereClause} AND status = 'active'
+        GROUP BY memory_type ORDER BY n DESC LIMIT 6
+      `, params),
+      client.query(`
+        SELECT public_id, LEFT(content, 100) AS snippet FROM memories
+        WHERE ${whereClause} AND criticality IN ('critical','high') AND status = 'active'
+        ORDER BY criticality DESC, created_at DESC LIMIT 5
+      `, params),
+      client.query(`
+        SELECT unnest(tags) AS tag, COUNT(*) AS n FROM memories
+        WHERE ${whereClause} AND status = 'active' AND tags IS NOT NULL
+        GROUP BY tag ORDER BY n DESC LIMIT 8
+      `, params),
+      client.query(`
+        SELECT public_id, last_verified_at FROM memories
+        WHERE ${whereClause} AND last_verified_at IS NOT NULL AND status = 'active'
+        ORDER BY last_verified_at DESC LIMIT 3
+      `, params),
+    ]);
+
+    const s = statsRes.rows[0];
+    console.log(c.bold(`\n${bankName} — Manifest\n`));
+    console.log(
+      `  Memorias:   ${s.total} total` +
+      `  |  ${s.active} activas` +
+      `  |  ${s.deprecated} deprecated` +
+      `  |  ${s.high_crit} críticas`
+    );
+    if (typesRes.rows.length)   console.log(`  Tipos:      ${typesRes.rows.map(r => `${r.memory_type}(${r.n})`).join(', ')}`);
+    if (tagsRes.rows.length)    console.log(`  Tags:       ${tagsRes.rows.map(r => r.tag).join(', ')}`);
+
+    if (critRes.rows.length) {
+      console.log(`\n  ${c.yellow('Críticas / high:')}`);
+      for (const r of critRes.rows) {
+        console.log(`    ${c.cyan((r.public_id || '—').padEnd(12))}  ${r.snippet.replace(/\n/g, ' ')}…`);
+      }
+    }
+    if (verifiedRes.rows.length) {
+      console.log(`\n  ${c.dim('Verificadas recientemente:')}`);
+      for (const r of verifiedRes.rows) {
+        const d = new Date(r.last_verified_at).toISOString().slice(0, 10);
+        console.log(`    ${c.cyan((r.public_id || '—').padEnd(12))}  ${c.dim(d)}`);
+      }
+    }
+
+    const filterArg = org ? `--org ${org} --project ${project}` : `--project ${project || bankName}`;
+    console.log(`\n  ${c.dim('Comandos sugeridos:')}`);
+    console.log(`  ${c.cyan(`vector-memory search "<query>" ${filterArg}`)}`);
+    console.log(`  ${c.cyan(`vector-memory iterate ${filterArg}`)}`);
+    console.log('');
+  } finally {
+    await client.end();
+  }
+}
+
+// ─── COMMAND: iterate ─────────────────────────────────────────────────────────
+async function cmdIterate(flags) {
+  console.log(c.bold('\nvector-memory iterate\n'));
+
+  let effectiveProject = flags.project  || null;
+  let effectiveOrg     = flags.org      || null;
+  let effectiveRepo    = flags.repo     || null;
+  const limit          = flags.limit ? parseInt(flags.limit, 10) : 20;
+
+  // Auto-cargar desde config del proyecto si no se especificaron filtros
+  if (!effectiveProject) {
+    const loaded = await loadConfig();
+    if (loaded?.config) {
+      effectiveProject = loaded.config.project       || null;
+      effectiveOrg     = loaded.config.organization  || null;
+      effectiveRepo    = loaded.config.repo_name     || null;
+    }
+  }
+
+  if (effectiveProject) {
+    const bankLabel = [effectiveOrg, effectiveProject].filter(Boolean).join('/');
+    console.log(c.dim(`  Banco: ${bankLabel}\n`));
+  }
+  console.log(c.dim('  Ejecutando Reflect...\n'));
+
+  let reflectResult;
+  let pool;
+  try {
+    const queryMod = await import(pathToFileURL(join(__dirname, 'query.js')).href);
+    const dbMod    = await import(pathToFileURL(join(__dirname, 'db.js')).href);
+    pool           = dbMod.default;
+    reflectResult  = await queryMod.reflectMemories({
+      project:  effectiveProject || undefined,
+      org:      effectiveOrg     || undefined,
+      repoName: effectiveRepo    || undefined,
+      limit,
+    });
+  } catch (err) {
+    console.error(c.red(`  Error: ${err.message}`));
+    if (/openai|api.key/i.test(err.message)) {
+      console.error(c.dim('  Asegúrate de que OPENAI_API_KEY esté en ~/.vector-memory.env'));
+    }
+    process.exit(1);
+  } finally {
+    await pool?.end().catch(() => {});
+  }
+
+  if (!reflectResult) { console.log(c.dim('  Sin resultados.\n')); return; }
+
+  const {
+    analyzed_count        = 0,
+    summary               = '',
+    findings              = [],
+    suggested_new_memories   = [],
+    suggested_deprecations   = [],
+  } = reflectResult;
+
+  console.log(`  Analizadas: ${c.cyan(String(analyzed_count))} memorias`);
+  if (summary) console.log(`\n  ${summary}\n`);
+
+  if (!findings.length && !suggested_new_memories.length && !suggested_deprecations.length) {
+    console.log(c.green('\n  La base de conocimiento está en buen estado. Sin sugerencias.\n'));
+    return;
+  }
+
+  if (findings.length > 0) {
+    console.log(c.bold(`\n  Hallazgos (${findings.length}):\n`));
+    for (const f of findings) {
+      const badge = f.type === 'contradiction' ? c.red(`[${f.type}]`)
+                  : f.type === 'duplicate'     ? c.yellow(`[${f.type}]`)
+                  :                              c.dim(`[${f.type || 'gap'}]`);
+      console.log(`  ${badge}  ${f.description}`);
+      if (f.memory_ids?.length) console.log(c.dim(`         IDs: ${f.memory_ids.join(', ')}`));
+      if (f.suggested_action)   console.log(c.dim(`         Acción: ${f.suggested_action}`));
+      console.log('');
+    }
+  }
+
+  if (suggested_deprecations.length > 0) {
+    console.log(c.bold(`  Deprecaciones sugeridas (${suggested_deprecations.length}):\n`));
+    for (const d of suggested_deprecations) {
+      const id     = typeof d === 'string' ? d : (d.id || '?');
+      const reason = typeof d === 'object'  ? d.reason : null;
+      console.log(`  ${c.yellow('→')}  ${c.cyan(id)}${reason ? c.dim('  ' + reason) : ''}`);
+    }
+    console.log('');
+  }
+
+  if (suggested_new_memories.length > 0) {
+    console.log(c.bold(`  Memorias nuevas sugeridas (${suggested_new_memories.length}):\n`));
+    for (const m of suggested_new_memories) {
+      const meta    = `[${m.memory_type || '?'}/${m.criticality || 'normal'}]`;
+      const preview = (m.content || '').replace(/\n/g, ' ').slice(0, 120);
+      console.log(`  ${c.green('+')}  ${c.dim(meta)}`);
+      console.log(`     ${preview}`);
+      if (m.tags?.length) console.log(c.dim(`     tags: ${m.tags.join(', ')}`));
+      console.log('');
+    }
+  }
+
+  console.log(c.dim('  Para aplicar sugerencias:'));
+  console.log(c.dim('  • UI Reflect:  vector-memory worker --open'));
+  console.log(c.dim('  • Via agente:  usa deprecate_memory / save_memory en tu agente MCP\n'));
+}
+
 // ─── Help ─────────────────────────────────────────────────────────────────────
 function printHelp(unknown) {
   console.log(c.bold('\nvector-memory\n'));
   console.log('  Comandos:\n');
-  console.log('    quickstart            Configuracion guiada desde cero');
-  console.log('    init-project          Crea .vector-memory.json con la config del repo');
-  console.log('    doctor                Verifica configuracion, DB y dependencias');
-  console.log('    migrate               Aplica el schema SQL en la DB');
-  console.log('    ingest [path...]      Ingesta archivos usando la config del proyecto');
-  console.log('    search <query>        Busca memorias por similitud semantica');
-  console.log('    worker                Inicia HTTP server con endpoints de eventos de sesion');
-  console.log('    mcp-config            Genera snippet de config MCP copiable');
-  console.log('    up                    docker compose up -d (solo PostgreSQL)');
-  console.log('    down                  docker compose down\n');
+  console.log('    quickstart              Configuracion guiada desde cero');
+  console.log('    init [--tools ...]      Inicializa el proyecto y configura agentes IA');
+  console.log('    init-project            Crea .vector-memory.json con la config del repo');
+  console.log('    doctor                  Verifica configuracion, DB y dependencias');
+  console.log('    migrate                 Aplica el schema SQL en la DB');
+  console.log('    ingest [path...]        Ingesta archivos usando la config del proyecto');
+  console.log('    search <query>          Busca memorias por similitud semantica');
+  console.log('    worker                  Inicia HTTP server con endpoints de eventos de sesion');
+  console.log('    mcp-config              Genera snippet de config MCP copiable');
+  console.log('    up                      docker compose up -d (solo PostgreSQL)');
+  console.log('    down                    docker compose down\n');
+  console.log('  Agentes IA:\n');
+  console.log('    skills install          Instala instrucciones de uso en el agente');
+  console.log('    commands install        Instala slash commands en el agente\n');
+  console.log('  Memory banks:\n');
+  console.log('    bank ls                 Lista todos los bancos de memoria');
+  console.log('    bank create <nombre>    Crea un banco de memoria nombrado');
+  console.log('    bank show   <nombre>    Estadisticas de un banco');
+  console.log('    doc ls      <banco>     Lista documentos de un banco');
+  console.log('    doc create  <banco> <file>  Ingesta un archivo en un banco');
+  console.log('    manifest    <banco>     Resumen compacto de un banco');
+  console.log('    iterate                 Ejecuta Reflect y presenta sugerencias de mejora\n');
   console.log('  Flags:\n');
+  console.log('    --tools TOOLS         Herramientas para init: claude-code,cursor,codex,opencode,openclaw');
+  console.log('    --target TARGET       Target para skills/commands: claude-code|cursor|opencode|codex|openclaw');
+  console.log('    --dir DIR             Directorio base para skills/commands install');
   console.log('    --dry-run             Simula la ingesta sin guardar nada');
   console.log('    --secret-mode MODE    block|redact para ingesta (default: block)');
-  console.log('    --limit N             Numero de resultados para search (default: 5)');
+  console.log('    --limit N             Numero de resultados para search/iterate (default: 5/20)');
   console.log('    --repo NAME           Filtrar por repo_name');
   console.log('    --type TYPE           Filtrar por memory_type');
   console.log('    --status STATUS       Filtrar por status');
   console.log('    --org ORG             Filtrar por organizacion');
   console.log('    --project PROJECT     Filtrar por proyecto');
-  console.log('    --yes                 Aceptar defaults en init-project (modo no interactivo)');
+  console.log('    --yes                 Aceptar defaults (modo no interactivo)');
   console.log('    --target TARGET       Target para mcp-config: claude-code|opencode|cursor|openclaw');
   console.log('    --full                Levantar todos los servicios Docker (api incluida)');
   console.log('    --port PORT           Puerto para worker (default: 3010)');
@@ -679,8 +1434,14 @@ async function main() {
       await cmdQuickstart();
       break;
     case 'init-project':
-    case 'init':
       await cmdInitProject(flags);
+      break;
+    case 'init':
+      if (flags.tools) {
+        await cmdInitWithTools(flags);
+      } else {
+        await cmdInitProject(flags);
+      }
       break;
     case 'doctor':
       await cmdDoctor();
@@ -705,6 +1466,24 @@ async function main() {
       break;
     case 'down':
       await cmdDockerDown();
+      break;
+    case 'skills':
+      await cmdSkillsInstall(flags);
+      break;
+    case 'commands':
+      await cmdCommandsInstall(flags);
+      break;
+    case 'bank':
+      await cmdBank({ positional, flags });
+      break;
+    case 'doc':
+      await cmdDoc({ positional, flags });
+      break;
+    case 'manifest':
+      await cmdManifest({ positional, flags });
+      break;
+    case 'iterate':
+      await cmdIterate(flags);
       break;
     default:
       printHelp(command);

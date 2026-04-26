@@ -41,6 +41,41 @@ vector-memory quickstart
 vector-memory worker --open
 ```
 
+## Bring Your Own Coding Agent
+
+Funciona con cualquier agente IA que soporte MCP. Un comando configura todo:
+
+```bash
+vector-memory init --tools claude-code    # o cursor, codex, opencode, openclaw
+```
+
+Eso ejecuta en un solo paso: crea `.vector-memory.json`, instala las instrucciones
+de uso en el archivo de config del agente, instala slash commands (donde aplica)
+y muestra el snippet de config MCP.
+
+| Agente | Instrucciones | Slash commands | Config MCP |
+|---|---|---|---|
+| Claude Code | `CLAUDE.md` | `.claude/commands/vm-*.md` | `~/.claude/mcp.json` |
+| OpenCode | `AGENTS.md` | `.opencode/commands/vm-*.md` | `.opencode/config.json` |
+| Cursor | `.cursor/rules/vector-memory.mdc` | — | Settings → MCP |
+| Codex | `AGENTS.md` | — | `~/.codex/config.yaml` |
+| OpenClaw | `AGENTS.md` | `.opencode/commands/vm-*.md` | según config |
+
+Slash commands disponibles: `/vm-context`, `/vm-search`, `/vm-save`, `/vm-reflect`, `/vm-iterate`
+
+```bash
+# Instalar solo las instrucciones de uso
+vector-memory skills install --target opencode
+
+# Instalar solo los slash commands
+vector-memory commands install --target claude-code
+
+# Combinar múltiples agentes
+vector-memory init --tools claude-code,cursor
+```
+
+Ver guías detalladas en [docs/integrations/](./docs/integrations/).
+
 ## Ciclo completo
 
 ```
@@ -206,6 +241,9 @@ vector-memory mcp-config --target claude-code
 | [Seguridad](./docs/security.md) | Denylist, detector de secretos, dry-run, log |
 | [Arquitectura](./docs/architecture.md) | Modelo de datos, ranking, índices, estructura |
 | [AGENTS.md](./AGENTS.md) | System prompt de referencia para integrar agentes |
+| [Integraciones](./docs/integrations/) | Claude Code, Cursor, Codex, OpenCode, OpenClaw |
+| [Conceptos](./docs/concepts/) | Memory banks, reflect, verificación, deprecación |
+| [Cookbook](./docs/cookbook/) | Decisiones de arquitectura, bugs, seguridad, sesiones |
 
 ## Contribuciones
 

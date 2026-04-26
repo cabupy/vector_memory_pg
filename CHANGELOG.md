@@ -5,6 +5,46 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.10.0] - 2026-04-26
+
+### Agregado
+
+- **Onboarding multi-agente**: `vector-memory init --tools <tool>` configura
+  instrucciones, slash commands y MCP en un solo paso para
+  `claude-code`, `cursor`, `codex`, `opencode` y `openclaw`
+- **`skills install`**: instala instrucciones de uso en el archivo de config
+  del agente (`CLAUDE.md`, `AGENTS.md` o `.cursor/rules/vector-memory.mdc`);
+  marker `<!-- vector-memory-skill -->` garantiza idempotencia
+- **`commands install`**: instala 5 slash commands en `.claude/commands/`
+  o `.opencode/commands/`; comandos: `/vm-context`, `/vm-search`, `/vm-save`,
+  `/vm-reflect`, `/vm-iterate`
+- **`bank` subcomandos**: `bank ls`, `bank create <nombre>`, `bank show <nombre>`
+  para gestionar colecciones nombradas de memorias
+- **`doc` subcomandos**: `doc ls <banco>`, `doc create <banco> <file>`
+  para listar e ingestar documentos en un banco específico
+- **`manifest <banco>`**: resumen compacto del banco con 5 queries paralelas
+  (stats, tipos, criticidad, tags, verificadas) para dar contexto a un agente
+  sin saturar el context window
+- **`iterate`**: ejecuta `reflectMemories` y presenta hallazgos + sugerencias
+  en terminal sin modificar nada
+- `docs/integrations/`: guías detalladas por agente
+  (claude-code.md, cursor.md, codex.md, opencode.md, openclaw.md)
+- `docs/concepts/`: memory-banks.md, reflect.md, verification.md, deprecation.md
+- `docs/cookbook/`: architecture-decisions.md, known-bugs.md,
+  security-rules.md, session-summary.md
+- `docs/desktop-roadmap.md`: ideas candidatas para futura app desktop
+- `README.en.md`: versión en inglés del README principal
+- `README.md`: sección **Bring Your Own Coding Agent** con tabla multi-agente
+  y tabla de documentación ampliada
+
+### Mejorado
+
+- `printHelp` actualizado con todos los nuevos comandos y flags
+- Router `main()` separado: `init` sin `--tools` llama `cmdInitProject`;
+  con `--tools` llama `cmdInitWithTools`
+
+---
+
 ## [1.9.9] - 2026-04-25
 
 ### Mejorado
