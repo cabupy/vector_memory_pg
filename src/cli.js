@@ -254,6 +254,10 @@ async function cmdIngest({ positional = [], flags = {}, preloadedConfig = null }
   if (config.tags?.length) process.env.MEMORY_TAGS         = config.tags.join(',');
   process.env.INGEST_SECRET_MODE = secretMode;
 
+  // Overrides de banco (doc create): se aplican después del config para no ser pisados
+  if (flags._bankOrg)     process.env.MEMORY_ORGANIZATION = flags._bankOrg;
+  if (flags._bankProject) process.env.MEMORY_PROJECT      = flags._bankProject;
+
   // Determinar paths
   const rawPaths = positional.length > 0 ? positional : (config.ingest_paths || []);
   if (rawPaths.length === 0) {
@@ -881,8 +885,11 @@ async function cmdSkillsInstall(flags) {
     rl.question(`  ${q} [S/n]: `, ans => res(ans.trim().toLowerCase() || 's'));
   });
 
-  for (const t of targets) await installSkillForTarget(t, dir, ask);
-  rl.close();
+  try {
+    for (const t of targets) await installSkillForTarget(t, dir, ask);
+  } finally {
+    rl.close();
+  }
 }
 
 async function installSkillForTarget(target, dir, ask) {
@@ -941,7 +948,7 @@ async function cmdCommandsInstall(flags) {
   const target  = String(flags.target || 'all');
   const dir     = flags.dir ? resolve(flags.dir) : process.cwd();
   const yes     = !!flags.yes;
-  const allTargets = ['claude-code', 'opencode'];
+  const allTargets = ['claude-code', 'opencode', 'openclaw'];
   const targets = target === 'all'
     ? allTargets
     : target.split(',').map(t => t.trim()).filter(t => allTargets.includes(t));
@@ -949,8 +956,8 @@ async function cmdCommandsInstall(flags) {
   if (!flags._noHeader) console.log(c.bold('\nvector-memory commands install\n'));
 
   if (targets.length === 0) {
-    console.log(c.dim('  Slash commands disponibles para: claude-code, opencode'));
-    console.log(c.dim('  Para cursor/codex/openclaw usa: vector-memory skills install\n'));
+    console.log(c.dim('  Slash commands disponibles para: claude-code, opencode, openclaw'));
+    console.log(c.dim('  Para cursor/codex usa: vector-memory skills install\n'));
     return;
   }
 
@@ -960,8 +967,11 @@ async function cmdCommandsInstall(flags) {
     rl.question(`  ${q} [S/n]: `, ans => res(ans.trim().toLowerCase() || 's'));
   });
 
-  for (const t of targets) await installCommandsForTarget(t, dir, ask);
-  rl.close();
+  try {
+    for (const t of targets) await installCommandsForTarget(t, dir, ask);
+  } finally {
+    rl.close();
+  }
 }
 
 async function installCommandsForTarget(target, dir, ask) {
@@ -995,8 +1005,13 @@ async function installCommandsForTarget(target, dir, ask) {
 
 // ─── COMMAND: init --tools ────────────────────────────────────────────────────
 async function cmdInitWithTools(flags) {
-  const toolsRaw = String(flags.tools || 'claude-code');
-  const tools    = toolsRaw.split(',').map(t => t.trim());
+  const toolsRaw = typeof flags.tools === 'string' ? flags.tools.trim() : '';
+  if (!toolsRaw || toolsRaw === 'true') {
+    console.error(c.red('  --tools requiere un valor: claude-code, cursor, codex, opencode, openclaw'));
+    console.log('  Ejemplo: vector-memory init --tools claude-code,cursor\n');
+    process.exit(1);
+  }
+  const tools = toolsRaw.split(',').map(t => t.trim()).filter(Boolean);
   const yes      = !!flags.yes;
 
   console.log(c.bold('\nvector-memory init --tools\n'));
@@ -1172,12 +1187,15 @@ async function cmdDoc({ subcommand, args, flags }) {
       process.exit(1);
     }
     const [org, project] = parseBankName(name);
-    if (org)     process.env.MEMORY_ORGANIZATION = org;
-    if (project) process.env.MEMORY_PROJECT      = project;
 
     console.log(c.bold(`\nvector-memory doc create — ${name}\n`));
     console.log(c.dim(`  org=${org || '-'}  project=${project}  archivo=${filePath}\n`));
-    await cmdIngest({ positional: [filePath], flags });
+    // Pasar overrides via flags para que cmdIngest los aplique DESPUÉS de cargar config,
+    // evitando que .vector-memory.json pise el banco especificado.
+    await cmdIngest({
+      positional: [filePath],
+      flags: { ...flags, _bankOrg: org || undefined, _bankProject: project || undefined },
+    });
 
   } else {
     console.log(c.yellow(`  Subcomando desconocido: ${subcommand}`));
@@ -1278,14 +1296,12 @@ async function cmdIterate(flags) {
   let effectiveRepo    = flags.repo     || null;
   const limit          = flags.limit ? parseInt(flags.limit, 10) : 20;
 
-  // Auto-cargar desde config del proyecto si no se especificaron filtros
-  if (!effectiveProject) {
-    const loaded = await loadConfig();
-    if (loaded?.config) {
-      effectiveProject = loaded.config.project       || null;
-      effectiveOrg     = loaded.config.organization  || null;
-      effectiveRepo    = loaded.config.repo_name     || null;
-    }
+  // Auto-cargar desde config del proyecto, solo para los valores no provistos explícitamente
+  const loaded = await loadConfig();
+  if (loaded?.config) {
+    if (!effectiveProject) effectiveProject = loaded.config.project       || null;
+    if (!effectiveOrg)     effectiveOrg     = loaded.config.organization  || null;
+    if (!effectiveRepo)    effectiveRepo    = loaded.config.repo_name     || null;
   }
 
   if (effectiveProject) {
@@ -1413,7 +1429,6 @@ function printHelp(unknown) {
   console.log('    --org ORG             Filtrar por organizacion');
   console.log('    --project PROJECT     Filtrar por proyecto');
   console.log('    --yes                 Aceptar defaults (modo no interactivo)');
-  console.log('    --target TARGET       Target para mcp-config: claude-code|opencode|cursor|openclaw');
   console.log('    --full                Levantar todos los servicios Docker (api incluida)');
   console.log('    --port PORT           Puerto para worker (default: 3010)');
   console.log('    --host HOST           Host para worker (default: 127.0.0.1)');
@@ -1468,19 +1483,29 @@ async function main() {
       await cmdDockerDown();
       break;
     case 'skills':
+      if (positional[0] && positional[0] !== 'install') {
+        console.error(c.red(`  Subcomando desconocido: skills ${positional[0]}`));
+        console.log('  Uso: vector-memory skills install [--target TARGET]\n');
+        process.exit(1);
+      }
       await cmdSkillsInstall(flags);
       break;
     case 'commands':
+      if (positional[0] && positional[0] !== 'install') {
+        console.error(c.red(`  Subcomando desconocido: commands ${positional[0]}`));
+        console.log('  Uso: vector-memory commands install [--target TARGET]\n');
+        process.exit(1);
+      }
       await cmdCommandsInstall(flags);
       break;
     case 'bank':
-      await cmdBank({ positional, flags });
+      await cmdBank({ subcommand: positional[0], args: positional.slice(1), flags });
       break;
     case 'doc':
-      await cmdDoc({ positional, flags });
+      await cmdDoc({ subcommand: positional[0], args: positional.slice(1), flags });
       break;
     case 'manifest':
-      await cmdManifest({ positional, flags });
+      await cmdManifest({ bankName: positional[0], flags });
       break;
     case 'iterate':
       await cmdIterate(flags);

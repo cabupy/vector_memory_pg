@@ -5,6 +5,33 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.10.1] - 2026-04-26
+
+### Corregido
+
+- **Bug crítico**: `bank ls/create/show` siempre caían en el bloque de ayuda —
+  `main()` pasaba `{positional, flags}` a `cmdBank` que espera `{subcommand, args, flags}`
+- **Bug crítico**: `doc ls/create` mismo problema — `main()` no extraía `subcommand`/`args`
+- **Bug crítico**: `manifest <banco>` siempre terminaba con `process.exit(1)` —
+  `main()` pasaba `{positional, flags}` a `cmdManifest` que espera `{bankName, flags}`
+- **Bug crítico**: `doc create <banco> <file>` ignoraba el banco especificado si había
+  `.vector-memory.json` en el directorio — `cmdIngest` pisaba `MEMORY_ORGANIZATION/PROJECT`
+  con los valores del config; ahora `cmdIngest` aplica overrides de banco después del config
+- `openclaw` estaba ausente de `allTargets` en `cmdCommandsInstall` — era silenciosamente
+  ignorado aunque está documentado como target soportado
+- `vector-memory skills foo` ejecutaba la instalación sin validar el subcomando;
+  ahora solo `install` es aceptado (sin subcomando también funciona por retrocompatibilidad)
+- Mismo fix para `vector-memory commands <subcomando>`
+- `cmdIterate`: `--org` explícito podía ser pisado por el `.vector-memory.json`;
+  ahora los flags explícitos tienen prioridad y el config solo rellena lo que falta
+- `--tools` sin valor producía `String(true) = "true"` como target;
+  ahora da error claro con ejemplo de uso
+- `rl.close()` en `cmdSkillsInstall` y `cmdCommandsInstall` movido a bloque `finally`
+  para garantizar cierre de stdin ante errores de I/O
+- `printHelp`: eliminado el flag `--target` duplicado
+
+---
+
 ## [1.10.0] - 2026-04-26
 
 ### Agregado
