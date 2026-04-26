@@ -101,6 +101,34 @@ El servidor expone:
 
 ---
 
+## migrate
+
+Aplica el schema SQL en PostgreSQL. Es idempotente: puedes ejecutarlo varias
+veces sin duplicar tablas o indices.
+
+```bash
+vector-memory migrate
+```
+
+Requiere `VECTOR_MEMORY_DATABASE_URL` o `DATABASE_URL`.
+
+---
+
+## up / down
+
+Gestiona los servicios Docker incluidos en el paquete.
+
+```bash
+vector-memory up              # levanta PostgreSQL + pgvector
+vector-memory up --full       # levanta PostgreSQL + API container
+vector-memory down            # detiene servicios Docker
+```
+
+Por defecto PostgreSQL queda expuesto en `localhost:5433` para evitar colisionar
+con instalaciones locales en `5432`.
+
+---
+
 ## init-project
 
 Crea `.vector-memory.json` en el directorio actual con la configuracion del proyecto. Auto-detecta `repo_name` y `organization` desde el remote de git.

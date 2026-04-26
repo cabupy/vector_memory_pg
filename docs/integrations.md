@@ -175,7 +175,7 @@ O programaticamente si el cliente acepta config JSON:
 
 ## Herramientas disponibles para el agente
 
-Una vez conectado, el agente tiene acceso a 11 herramientas:
+Una vez conectado, el agente tiene acceso a 12 herramientas:
 
 | Herramienta | Para que sirve |
 |---|---|
