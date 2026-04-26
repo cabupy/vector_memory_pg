@@ -5,6 +5,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.10.3] - 2026-04-26
+
+### Corregido
+
+- `skills install --target all`: al agrupar targets que comparten `AGENTS.md`
+  (opencode/codex/openclaw), `installSkillForTarget` volvía a imprimir `→ opencode`
+  después del header agrupado — línea redundante suprimida con el flag `skipHeader`
+- `mcp-config`: `codex` no estaba en el mapa de hints; `mcp-config --target codex`
+  ahora indica `AGENTS.md o variable de entorno MCP_SERVERS del entorno Codex`
+
+---
+
 ## [1.10.2] - 2026-04-26
 
 ### Corregido

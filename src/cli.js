@@ -485,6 +485,7 @@ async function cmdMcpConfig(flags) {
     'opencode':    '.opencode/config.json  →  clave "mcp"',
     'cursor':      'Cursor Settings → MCP → Add server',
     'openclaw':    'Configuración del agente OpenClaw → MCP servers',
+    'codex':       'AGENTS.md o variable de entorno MCP_SERVERS del entorno Codex',
     'generic':     null,
   };
 
@@ -917,15 +918,15 @@ async function cmdSkillsInstall(flags) {
       if (covered.length > 1) {
         console.log(c.dim(`\n  → ${covered.join(' + ')} (comparten ${destFile(t)})`));
       }
-      await installSkillForTarget(t, dir, ask);
+      await installSkillForTarget(t, dir, ask, { skipHeader: covered.length > 1 });
     }
   } finally {
     rl.close();
   }
 }
 
-async function installSkillForTarget(target, dir, ask) {
-  console.log(c.dim(`\n  → ${target}`));
+async function installSkillForTarget(target, dir, ask, { skipHeader = false } = {}) {
+  if (!skipHeader) console.log(c.dim(`\n  → ${target}`));
 
   if (target === 'cursor') {
     const destDir  = join(dir, '.cursor', 'rules');
