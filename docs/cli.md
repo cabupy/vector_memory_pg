@@ -54,7 +54,7 @@ vector-memory mcp-config --target opencode
 vector-memory mcp-config --target cursor
 ```
 
-Targets disponibles: `claude-code` (default), `opencode`, `cursor`, `openclaw`.
+Targets disponibles: `claude-code` (default), `opencode`, `cursor`, `openclaw`, `codex`.
 
 Ejemplo de salida (`claude-code`):
 
