@@ -220,15 +220,127 @@ vector-memory search "seguridad" --status active --criticality high
 
 ---
 
+## init
+
+Crea `.vector-memory.json` en el directorio actual. Sin flags, equivale a `init-project`.
+Con `--tools`, configura además las instrucciones de uso y slash commands para el agente.
+
+```bash
+vector-memory init                          # igual que init-project
+vector-memory init --tools claude-code      # init + skills + commands + mcp-config
+vector-memory init --tools opencode,cursor  # múltiples agentes
+```
+
+Agentes disponibles: `claude-code`, `cursor`, `codex`, `opencode`, `openclaw`.
+
+---
+
+## skills install
+
+Instala las instrucciones de uso de vector-memory en el archivo de config del agente.
+
+```bash
+vector-memory skills install --target claude-code
+vector-memory skills install --target opencode
+vector-memory skills install --target cursor
+```
+
+| Target | Archivo destino |
+|---|---|
+| `claude-code` | `CLAUDE.md` |
+| `opencode` / `codex` / `openclaw` | `AGENTS.md` |
+| `cursor` | `.cursor/rules/vector-memory.mdc` |
+
+La operación es idempotente: usa el marker `<!-- vector-memory-skill -->` para evitar duplicados.
+
+---
+
+## commands install
+
+Instala 5 slash commands para invocar flujos de memoria desde el chat del agente.
+
+```bash
+vector-memory commands install --target claude-code
+vector-memory commands install --target opencode
+```
+
+| Target | Directorio destino |
+|---|---|
+| `claude-code` | `.claude/commands/` |
+| `opencode` / `openclaw` | `.opencode/commands/` |
+
+Comandos instalados: `/vm-context`, `/vm-search`, `/vm-save`, `/vm-reflect`, `/vm-iterate`.
+
+---
+
+## bank
+
+Gestiona bancos de memoria: colecciones nombradas asociadas a un proyecto o dominio.
+
+```bash
+vector-memory bank ls                     # lista todos los bancos
+vector-memory bank create mi-proyecto     # crea un banco
+vector-memory bank show mi-proyecto       # estadísticas del banco
+```
+
+La configuración de bancos se guarda en `~/.vector-memory-banks.json`.
+
+---
+
+## doc
+
+Lista e ingesta documentos dentro de un banco de memoria.
+
+```bash
+vector-memory doc ls mi-proyecto              # lista documentos del banco
+vector-memory doc create mi-proyecto README.md  # ingesta un archivo en el banco
+```
+
+`doc create` sobreescribe temporalmente `MEMORY_ORGANIZATION` y `MEMORY_PROJECT`
+para que las memorias queden asociadas al banco correcto.
+
+---
+
+## manifest
+
+Muestra un resumen compacto de un banco de memoria: stats, tipos, criticidad, tags y memorias verificadas.
+
+```bash
+vector-memory manifest mi-proyecto
+```
+
+Útil para dar contexto a un agente al inicio de sesión sin saturar el context window.
+
+---
+
+## iterate
+
+Ejecuta `reflect_memories` y presenta los hallazgos en la terminal.
+Sugiere qué deprecar, qué consolidar y qué agregar — sin modificar nada.
+
+```bash
+vector-memory iterate
+vector-memory iterate --limit 30 --project mi-proyecto
+```
+
+| Flag | Descripción | Default |
+|---|---|---|
+| `--limit N` | Máximo de memorias a analizar | 20 |
+| `--project PROJECT` | Filtrar por proyecto | — |
+| `--repo NAME` | Filtrar por repo | — |
+| `--org ORG` | Filtrar por organización | — |
+
+---
+
 ## Flujo tipico en un nuevo proyecto
 
 ```bash
 cd mi-proyecto/
-vector-memory init-project       # detecta repo y org desde git remote
-vector-memory doctor             # verifica todo
-vector-memory ingest             # ingesta README.md y docs/
-vector-memory search "auth"      # busca memorias relevantes
-vector-memory worker --open      # levanta server y abre UI en browser
+vector-memory init --tools claude-code   # detecta repo/org, instala skills+commands
+vector-memory doctor                     # verifica todo
+vector-memory ingest                     # ingesta README.md y docs/
+vector-memory search "auth"             # busca memorias relevantes
+vector-memory worker --open             # levanta server y abre UI en browser
 ```
 
 ---
