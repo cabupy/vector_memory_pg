@@ -5,6 +5,25 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.10.2] - 2026-04-26
+
+### Corregido
+
+- `parseBankName`: nombres con barra inicial (`/proyecto`), barra final (`proyecto/`)
+  o más de dos niveles (`org/sub/proyecto`) ahora lanzan error descriptivo en lugar
+  de producir queries con datos malformados
+- `mcp-config` default: el target por defecto era `'generic'` en código pero `claude-code`
+  en la documentación; alineado a `claude-code`
+- `cmdInitWithTools` (`init --tools`): ahora verifica si el schema de DB está aplicado
+  y muestra un aviso accionable si la tabla `memories` no existe o si la DB no es alcanzable
+- `skills install --target all`: `opencode`, `codex` y `openclaw` comparten `AGENTS.md`;
+  ahora se deduplican y se instala una sola vez mostrando los targets cubiertos
+  (ej: `→ opencode + codex + openclaw (comparten AGENTS.md)`)
+- `showBankStats`: el header ahora es configurable via parámetro; permite reutilizar
+  la función con contexto correcto desde cualquier comando
+
+---
+
 ## [1.10.1] - 2026-04-26
 
 ### Corregido

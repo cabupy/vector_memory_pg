@@ -454,7 +454,7 @@ async function cmdDockerDown() {
 
 // ─── COMMAND: mcp-config ──────────────────────────────────────────────────────
 async function cmdMcpConfig(flags) {
-  const target = flags.target || 'generic';
+  const target = flags.target || 'claude-code';
 
   // Resolver ruta del ejecutable
   let cmd = 'vector-memory';
@@ -832,12 +832,19 @@ Usa \`save_session_summary\` con: qué se hizo, decisiones tomadas, qué quedó 
 
 // ─── helpers de banco ─────────────────────────────────────────────────────────
 function parseBankName(name) {
-  const idx = name.indexOf('/');
-  if (idx > 0) return [name.slice(0, idx), name.slice(idx + 1)];
-  return [null, name];
+  const trimmed = (name || '').trim();
+  if (!trimmed || trimmed.startsWith('/') || trimmed.endsWith('/')) {
+    throw new Error(`Nombre de banco inválido: "${name}". Formato esperado: proyecto  o  organización/proyecto`);
+  }
+  const parts = trimmed.split('/');
+  if (parts.length > 2) {
+    throw new Error(`Nombre de banco inválido: "${name}". Máximo un nivel de jerarquía: organización/proyecto`);
+  }
+  if (parts.length === 2) return [parts[0], parts[1]];
+  return [null, parts[0]];
 }
 
-async function showBankStats(client, name) {
+async function showBankStats(client, name, { header = `vector-memory bank show — ${name}` } = {}) {
   const [org, project] = parseBankName(name);
   const whereClause = org
     ? `organization = $1 AND project = $2`
@@ -858,7 +865,7 @@ async function showBankStats(client, name) {
   `, params);
 
   const r = res.rows[0];
-  console.log(c.bold(`\nvector-memory bank show — ${name}\n`));
+  console.log(c.bold(`\n${header}\n`));
   console.log(`  Total:      ${r.total}`);
   console.log(`  Activas:    ${r.active}`);
   console.log(`  Deprecated: ${r.deprecated}`);
@@ -879,6 +886,25 @@ async function cmdSkillsInstall(flags) {
 
   if (!flags._noHeader) console.log(c.bold('\nvector-memory skills install\n'));
 
+  // Deduplicar targets que comparten el mismo archivo destino.
+  // opencode/codex/openclaw usan AGENTS.md — solo instalar una vez.
+  const destFile = t => t === 'claude-code' ? 'CLAUDE.md'
+    : t === 'cursor' ? '.cursor/rules/vector-memory.mdc'
+    : 'AGENTS.md';
+  const seenFiles  = new Map(); // file → first target name
+  const effective  = [];
+  const aliases    = new Map(); // first target → [aliases]
+  for (const t of targets) {
+    const f = destFile(t);
+    if (!seenFiles.has(f)) {
+      seenFiles.set(f, t);
+      effective.push(t);
+      aliases.set(t, []);
+    } else {
+      aliases.get(seenFiles.get(f)).push(t);
+    }
+  }
+
   const rl  = createInterface({ input: process.stdin, output: process.stdout });
   const ask = q => new Promise(res => {
     if (yes) { res('s'); return; }
@@ -886,7 +912,13 @@ async function cmdSkillsInstall(flags) {
   });
 
   try {
-    for (const t of targets) await installSkillForTarget(t, dir, ask);
+    for (const t of effective) {
+      const covered = [t, ...(aliases.get(t) || [])];
+      if (covered.length > 1) {
+        console.log(c.dim(`\n  → ${covered.join(' + ')} (comparten ${destFile(t)})`));
+      }
+      await installSkillForTarget(t, dir, ask);
+    }
   } finally {
     rl.close();
   }
@@ -1023,6 +1055,32 @@ async function cmdInitWithTools(flags) {
     await cmdInitProject({ ...flags, yes: true });
   } else {
     console.log(c.green('  ✓ .vector-memory.json ya existe'));
+  }
+
+  // 2. Verificar schema de DB (aviso no bloqueante)
+  const dbUrl = process.env.VECTOR_MEMORY_DATABASE_URL || process.env.DATABASE_URL;
+  if (dbUrl) {
+    try {
+      const pg     = await import('pg');
+      const client = new pg.default.Client({ connectionString: dbUrl });
+      await client.connect();
+      const res = await client.query(
+        `SELECT to_regclass('public.memories') AS tbl`
+      );
+      await client.end();
+      if (!res.rows[0]?.tbl) {
+        console.log(c.yellow('\n  Aviso: la tabla memories no existe en la DB.'));
+        console.log(c.dim('  Corre: vector-memory migrate   (o vector-memory quickstart en instalación nueva)\n'));
+      } else {
+        console.log(c.green('  ✓ Schema de DB verificado'));
+      }
+    } catch {
+      console.log(c.yellow('\n  Aviso: no se pudo conectar a la DB.'));
+      console.log(c.dim('  Corre: vector-memory quickstart   para configurar la conexión\n'));
+    }
+  } else {
+    console.log(c.yellow('\n  Aviso: VECTOR_MEMORY_DATABASE_URL no configurado.'));
+    console.log(c.dim('  Corre: vector-memory quickstart   para configurar la DB\n'));
   }
 
   // 2. Skills

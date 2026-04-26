@@ -1,6 +1,6 @@
 {
   "name": "vector-memory-pg",
-  "version": "1.10.1",
+  "version": "1.10.2",
   "description": "Institutional technical memory for AI coding agents using PostgreSQL, pgvector, hybrid search, MCP, Reflect, CLI, and local UI.",
   "type": "module",
   "license": "MIT",
