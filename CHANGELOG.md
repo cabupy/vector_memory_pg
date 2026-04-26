@@ -5,6 +5,15 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.10.6] - 2026-04-26
+
+### Documentación
+
+- README en español agrega enlace visible a `README.en.md`
+- README en inglés agrega enlace visible de vuelta a `README.md`
+
+---
+
 ## [1.10.5] - 2026-04-26
 
 ### Corregido

@@ -13,6 +13,8 @@ PostgreSQL + pgvector + OpenAI embeddings + HTTP API + MCP + web UI.
 [Architecture](./docs/architecture.md) •
 [Contributing](./CONTRIBUTING.md)
 
+Versión en español: [README.md](./README.md)
+
 ---
 
 Your agent forgets everything when the session ends. `vector-memory-pg` gives it memory.
