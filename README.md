@@ -1,6 +1,6 @@
 # vector-memory-pg
 
-![vector-memory-pg](https://raw.githubusercontent.com/cabupy/vector_memory_pg/main/assets/images/banner-2.png)
+![vector-memory-pg](https://raw.githubusercontent.com/cabupy/vector_memory_pg/main/assets/images/banner-3.png)
 
 **Memoria técnica institucional para agentes IA** —
 PostgreSQL + pgvector + OpenAI embeddings + HTTP API + MCP + UI web.
