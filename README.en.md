@@ -28,16 +28,9 @@ Works from **any directory** without interfering with other projects' environmen
 
 ```bash
 npm install -g vector-memory-pg
-vector-memory quickstart      # guided setup: DB, .env, schema
+vector-memory up              # PostgreSQL 17 + pgvector via Docker (:5433)
+vector-memory quickstart      # configures ~/.vector-memory.env and applies schema
 vector-memory worker --open   # starts the server and opens the UI in the browser
-```
-
-Or with Docker (no local PostgreSQL required):
-
-```bash
-docker compose up -d          # starts PostgreSQL 17 + pgvector on :5433
-vector-memory quickstart
-vector-memory worker --open
 ```
 
 ## Bring Your Own Coding Agent

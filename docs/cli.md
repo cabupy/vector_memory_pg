@@ -43,6 +43,19 @@ Recomendado como primer paso en una instalación nueva.
 
 ---
 
+## mcp
+
+Inicia el servidor MCP por stdio. Es el comando que usan los snippets generados
+por `mcp-config`.
+
+```bash
+vector-memory mcp
+```
+
+No imprime logs a stdout para no corromper el protocolo MCP.
+
+---
+
 ## mcp-config
 
 Genera el snippet de configuración MCP listo para pegar en tu agente.

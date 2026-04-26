@@ -2,7 +2,13 @@
 
 `vector_memory_pg` incluye un servidor MCP (Model Context Protocol) que expone herramientas de lectura y escritura de memoria para cualquier agente compatible.
 
-Arrancar:
+Arrancar con el CLI global:
+
+```bash
+vector-memory mcp
+```
+
+En desarrollo desde el repo tambien puedes usar:
 
 ```bash
 npm run mcp
@@ -14,15 +20,25 @@ npm run mcp
 
 ### OpenCode / Claude Code
 
-Agregar al archivo de configuracion MCP (`~/.opencode/config.json` o equivalente):
+Genera el snippet recomendado:
+
+```bash
+vector-memory mcp-config --target opencode
+vector-memory mcp-config --target claude-code
+```
+
+La config usa el binario global:
 
 ```json
 {
   "mcpServers": {
     "vector-memory": {
-      "command": "node",
-      "args": ["/ruta/a/vector_memory_pg/src/mcp-server.js"],
-      "cwd": "/ruta/a/vector_memory_pg"
+      "command": "vector-memory",
+      "args": ["mcp"],
+      "env": {
+        "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
+      }
     }
   }
 }
@@ -36,9 +52,8 @@ El servidor corre por stdio. Configuracion generica:
 {
   "mcpServers": {
     "vector-memory": {
-      "command": "node",
-      "args": ["/ruta/a/vector_memory_pg/src/mcp-server.js"],
-      "cwd": "/ruta/a/vector_memory_pg",
+      "command": "vector-memory",
+      "args": ["mcp"],
       "env": {
         "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
         "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"

@@ -29,16 +29,9 @@ de entorno de otros proyectos.
 
 ```bash
 npm install -g vector-memory-pg
-vector-memory quickstart      # configuración guiada: DB, .env, schema
+vector-memory up              # PostgreSQL 17 + pgvector en Docker (:5433)
+vector-memory quickstart      # configura ~/.vector-memory.env y aplica schema
 vector-memory worker --open   # levanta el server y abre la UI en el browser
-```
-
-O con Docker (sin necesitar PostgreSQL local):
-
-```bash
-docker compose up -d          # levanta PostgreSQL 17 + pgvector en :5433
-vector-memory quickstart
-vector-memory worker --open
 ```
 
 ## Bring Your Own Coding Agent

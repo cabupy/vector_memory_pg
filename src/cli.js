@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // cli.js — vector-memory CLI
-// Comandos: init-project | doctor | ingest | search | quickstart | mcp-config | migrate | up | down
+// Comandos: init-project | doctor | ingest | search | quickstart | mcp | mcp-config | migrate | up | down
 
 import { readFile, writeFile, stat, readdir, access, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
@@ -476,6 +476,21 @@ async function cmdDockerDown() {
   const composeFile = join(__dirname, '..', 'docker-compose.yml');
   console.log(c.bold('\nvector-memory down\n'));
   execSync(`docker compose -f "${composeFile}" down`, { stdio: 'inherit' });
+}
+
+// ─── COMMAND: mcp ─────────────────────────────────────────────────────────────
+async function cmdMcp() {
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [join(__dirname, 'mcp-server.js')], {
+      env: process.env,
+      stdio: 'inherit',
+    });
+    child.on('error', reject);
+    child.on('exit', code => {
+      if (code && code !== 0) reject(new Error(`MCP server finalizó con código ${code}`));
+      else resolve();
+    });
+  });
 }
 
 // ─── COMMAND: mcp-config ──────────────────────────────────────────────────────
@@ -1543,6 +1558,7 @@ function printHelp(unknown) {
   console.log('    ingest [path...]        Ingesta archivos usando la config del proyecto');
   console.log('    search <query>          Busca memorias por similitud semantica');
   console.log('    worker                  Inicia HTTP server con endpoints de eventos de sesion');
+  console.log('    mcp                     Inicia MCP server por stdio');
   console.log('    mcp-config              Genera snippet de config MCP copiable');
   console.log('    up                      docker compose up -d (solo PostgreSQL)');
   console.log('    down                    docker compose down\n');
@@ -1614,6 +1630,9 @@ async function main() {
       break;
     case 'mcp-config':
       await cmdMcpConfig(flags);
+      break;
+    case 'mcp':
+      await cmdMcp();
       break;
     case 'worker':
       await cmdWorker(flags);

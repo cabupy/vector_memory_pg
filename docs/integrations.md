@@ -190,6 +190,7 @@ Una vez conectado, el agente tiene acceso a 12 herramientas:
 | `deprecate_memory` | Marcar como obsoleta |
 | `verify_memory` | Confirmar que sigue siendo valida |
 | `memory_stats` | Estado general de la base de conocimiento |
+| `reflect_memories` | Detectar contradicciones, duplicados y gaps |
 
 Ver [docs/mcp.md](./mcp.md) para la referencia completa de parametros.
 

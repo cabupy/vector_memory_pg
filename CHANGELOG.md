@@ -5,6 +5,22 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.10.5] - 2026-04-26
+
+### Corregido
+
+- `vector-memory mcp`: el subcomando ahora existe y arranca el servidor MCP por
+  stdio; antes `mcp-config` generaba `args: ["mcp"]` pero el router del CLI caía
+  en ayuda con `Comando desconocido: mcp`
+
+### Documentación
+
+- README/README.en actualizados con flujo Docker-first usando `vector-memory up`
+- `docs/mcp.md` y `docs/cli.md` documentan el subcomando `mcp`
+- `docs/integrations.md` ahora lista `reflect_memories` dentro de las 12 herramientas
+
+---
+
 ## [1.10.4] - 2026-04-26
 
 ### Corregido
