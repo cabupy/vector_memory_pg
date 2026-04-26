@@ -52,9 +52,14 @@ vector-memory mcp-config
 vector-memory mcp-config --target claude-code
 vector-memory mcp-config --target opencode
 vector-memory mcp-config --target cursor
+vector-memory mcp-config --show-secrets
 ```
 
 Targets disponibles: `claude-code` (default), `opencode`, `cursor`, `openclaw`, `codex`.
+
+Por seguridad, el comando omite valores reales de `VECTOR_MEMORY_DATABASE_URL` y
+`OPENAI_API_KEY` aunque existan en el entorno. Usa `--show-secrets` solo si necesitas
+imprimir un snippet literal para copiarlo a la config del agente.
 
 Ejemplo de salida (`claude-code`):
 
@@ -65,8 +70,8 @@ Ejemplo de salida (`claude-code`):
       "command": "vector-memory",
       "args": ["mcp"],
       "env": {
-        "VECTOR_MEMORY_DATABASE_URL": "postgres://...",
-        "OPENAI_API_KEY": "sk-..."
+        "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
       }
     }
   }

@@ -35,6 +35,32 @@ const c = {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const CONFIG_FILE = '.vector-memory.json';
+const TOOL_TARGETS = ['claude-code', 'cursor', 'codex', 'opencode', 'openclaw'];
+const SKILL_TARGETS = [...TOOL_TARGETS];
+const COMMAND_TARGETS = ['claude-code', 'opencode', 'openclaw'];
+const MCP_TARGETS = [...TOOL_TARGETS, 'generic'];
+
+function splitCsv(value) {
+  return String(value).split(',').map(t => t.trim()).filter(Boolean);
+}
+
+function rejectUnknownTargets(targets, supported, kind) {
+  const unknown = targets.filter(t => !supported.includes(t));
+  if (unknown.length === 0) return;
+  console.error(c.red(`  Target no soportado para ${kind}: ${unknown.join(', ')}`));
+  console.log(c.dim(`  Targets disponibles: ${supported.join(', ')}\n`));
+  process.exit(1);
+}
+
+function skillDestFile(target) {
+  return target === 'claude-code' ? 'CLAUDE.md'
+    : target === 'cursor' ? '.cursor/rules/vector-memory.mdc'
+    : 'AGENTS.md';
+}
+
+function commandDestDir(target) {
+  return target === 'claude-code' ? '.claude/commands' : '.opencode/commands';
+}
 
 function findConfigFile(startDir = process.cwd()) {
   let dir = resolve(startDir);
@@ -454,7 +480,9 @@ async function cmdDockerDown() {
 
 // ─── COMMAND: mcp-config ──────────────────────────────────────────────────────
 async function cmdMcpConfig(flags) {
-  const target = flags.target || 'claude-code';
+  const target = flags.target == null ? 'claude-code' : String(flags.target).trim();
+  rejectUnknownTargets([target], MCP_TARGETS, 'mcp-config');
+  const showSecrets = !!flags['show-secrets'];
 
   // Resolver ruta del ejecutable
   let cmd = 'vector-memory';
@@ -462,8 +490,10 @@ async function cmdMcpConfig(flags) {
     cmd = execSync('which vector-memory', { stdio: ['pipe', 'pipe', 'pipe'] }).toString().trim();
   } catch { /* usar el nombre global */ }
 
-  const dbUrl  = process.env.VECTOR_MEMORY_DATABASE_URL || process.env.DATABASE_URL || 'postgres://vector:vector@localhost:5433/vector_memory';
-  const apiKey = process.env.OPENAI_API_KEY || 'YOUR_OPENAI_API_KEY';
+  const actualDbUrl  = process.env.VECTOR_MEMORY_DATABASE_URL || process.env.DATABASE_URL || '';
+  const actualApiKey = process.env.OPENAI_API_KEY || '';
+  const dbUrl  = showSecrets ? (actualDbUrl || 'postgres://vector:vector@localhost:5433/vector_memory') : 'YOUR_VECTOR_MEMORY_DATABASE_URL';
+  const apiKey = showSecrets ? (actualApiKey || 'YOUR_OPENAI_API_KEY') : 'YOUR_OPENAI_API_KEY';
 
   const config = {
     mcpServers: {
@@ -493,6 +523,10 @@ async function cmdMcpConfig(flags) {
   if (hints[target]) {
     console.log(c.dim(`  Target: ${target}`));
     console.log(c.dim(`  Archivo: ${hints[target]}\n`));
+  }
+
+  if (!showSecrets && (actualDbUrl || actualApiKey)) {
+    console.log(c.dim('  Valores sensibles omitidos. Usa --show-secrets solo si necesitas imprimirlos.\n'));
   }
 
   console.log(json + '\n');
@@ -837,9 +871,12 @@ function parseBankName(name) {
   if (!trimmed || trimmed.startsWith('/') || trimmed.endsWith('/')) {
     throw new Error(`Nombre de banco inválido: "${name}". Formato esperado: proyecto  o  organización/proyecto`);
   }
-  const parts = trimmed.split('/');
+  const parts = trimmed.split('/').map(p => p.trim());
   if (parts.length > 2) {
     throw new Error(`Nombre de banco inválido: "${name}". Máximo un nivel de jerarquía: organización/proyecto`);
+  }
+  if (parts.some(p => !p)) {
+    throw new Error(`Nombre de banco inválido: "${name}". No puede contener componentes vacíos`);
   }
   if (parts.length === 2) return [parts[0], parts[1]];
   return [null, parts[0]];
@@ -855,9 +892,9 @@ async function showBankStats(client, name, { header = `vector-memory bank show �
   const res = await client.query(`
     SELECT
       COUNT(*)                                                              AS total,
-      SUM(CASE WHEN status = 'active'     THEN 1 ELSE 0 END)              AS active,
-      SUM(CASE WHEN status = 'deprecated' THEN 1 ELSE 0 END)              AS deprecated,
-      SUM(CASE WHEN criticality IN ('critical','high') THEN 1 ELSE 0 END) AS high_crit,
+      COALESCE(SUM(CASE WHEN status = 'active'     THEN 1 ELSE 0 END), 0)              AS active,
+      COALESCE(SUM(CASE WHEN status = 'deprecated' THEN 1 ELSE 0 END), 0)              AS deprecated,
+      COALESCE(SUM(CASE WHEN criticality IN ('critical','high') THEN 1 ELSE 0 END), 0) AS high_crit,
       array_agg(DISTINCT memory_type)
         FILTER (WHERE memory_type IS NOT NULL)                             AS types,
       MAX(created_at)                                                      AS latest
@@ -878,25 +915,29 @@ async function showBankStats(client, name, { header = `vector-memory bank show �
 
 // ─── COMMAND: skills install ──────────────────────────────────────────────────
 async function cmdSkillsInstall(flags) {
-  const target  = String(flags.target || 'all');
+  const target  = flags.target == null ? 'all' : String(flags.target).trim();
   const dir     = flags.dir ? resolve(flags.dir) : process.cwd();
   const yes     = !!flags.yes;
   const targets = target === 'all'
-    ? ['claude-code', 'cursor', 'opencode', 'codex', 'openclaw']
-    : target.split(',').map(t => t.trim());
+    ? SKILL_TARGETS
+    : splitCsv(target);
+
+  if (targets.length === 0) {
+    console.error(c.red('  --target no puede estar vacío'));
+    console.log(c.dim(`  Targets disponibles: ${SKILL_TARGETS.join(', ')}\n`));
+    process.exit(1);
+  }
+  rejectUnknownTargets(targets, SKILL_TARGETS, 'skills install');
 
   if (!flags._noHeader) console.log(c.bold('\nvector-memory skills install\n'));
 
   // Deduplicar targets que comparten el mismo archivo destino.
   // opencode/codex/openclaw usan AGENTS.md — solo instalar una vez.
-  const destFile = t => t === 'claude-code' ? 'CLAUDE.md'
-    : t === 'cursor' ? '.cursor/rules/vector-memory.mdc'
-    : 'AGENTS.md';
   const seenFiles  = new Map(); // file → first target name
   const effective  = [];
   const aliases    = new Map(); // first target → [aliases]
   for (const t of targets) {
-    const f = destFile(t);
+    const f = skillDestFile(t);
     if (!seenFiles.has(f)) {
       seenFiles.set(f, t);
       effective.push(t);
@@ -916,7 +957,7 @@ async function cmdSkillsInstall(flags) {
     for (const t of effective) {
       const covered = [t, ...(aliases.get(t) || [])];
       if (covered.length > 1) {
-        console.log(c.dim(`\n  → ${covered.join(' + ')} (comparten ${destFile(t)})`));
+        console.log(c.dim(`\n  → ${covered.join(' + ')} (comparten ${skillDestFile(t)})`));
       }
       await installSkillForTarget(t, dir, ask, { skipHeader: covered.length > 1 });
     }
@@ -978,20 +1019,47 @@ async function installSkillForTarget(target, dir, ask, { skipHeader = false } = 
 
 // ─── COMMAND: commands install ────────────────────────────────────────────────
 async function cmdCommandsInstall(flags) {
-  const target  = String(flags.target || 'all');
+  const target  = flags.target == null ? 'all' : String(flags.target).trim();
   const dir     = flags.dir ? resolve(flags.dir) : process.cwd();
   const yes     = !!flags.yes;
-  const allTargets = ['claude-code', 'opencode', 'openclaw'];
-  const targets = target === 'all'
-    ? allTargets
-    : target.split(',').map(t => t.trim()).filter(t => allTargets.includes(t));
+  const requested = target === 'all'
+    ? COMMAND_TARGETS
+    : splitCsv(target);
+
+  if (requested.length === 0) {
+    console.error(c.red('  --target no puede estar vacío'));
+    console.log(c.dim(`  Targets disponibles: ${COMMAND_TARGETS.join(', ')}\n`));
+    process.exit(1);
+  }
+  rejectUnknownTargets(requested, TOOL_TARGETS, 'commands install');
+
+  const unsupported = requested.filter(t => !COMMAND_TARGETS.includes(t));
+  const targets     = requested.filter(t => COMMAND_TARGETS.includes(t));
 
   if (!flags._noHeader) console.log(c.bold('\nvector-memory commands install\n'));
 
+  if (unsupported.length > 0) {
+    console.log(c.dim(`  Slash commands no disponibles para: ${unsupported.join(', ')}`));
+    console.log(c.dim('  Para cursor/codex usa: vector-memory skills install\n'));
+  }
+
   if (targets.length === 0) {
     console.log(c.dim('  Slash commands disponibles para: claude-code, opencode, openclaw'));
-    console.log(c.dim('  Para cursor/codex usa: vector-memory skills install\n'));
     return;
+  }
+
+  const seenDirs  = new Map(); // dir → first target name
+  const effective = [];
+  const aliases   = new Map(); // first target → [aliases]
+  for (const t of targets) {
+    const d = commandDestDir(t);
+    if (!seenDirs.has(d)) {
+      seenDirs.set(d, t);
+      effective.push(t);
+      aliases.set(t, []);
+    } else {
+      aliases.get(seenDirs.get(d)).push(t);
+    }
   }
 
   const rl  = createInterface({ input: process.stdin, output: process.stdout });
@@ -1001,18 +1069,22 @@ async function cmdCommandsInstall(flags) {
   });
 
   try {
-    for (const t of targets) await installCommandsForTarget(t, dir, ask);
+    for (const t of effective) {
+      const covered = [t, ...(aliases.get(t) || [])];
+      if (covered.length > 1) {
+        console.log(c.dim(`\n  → ${covered.join(' + ')} (comparten ${commandDestDir(t)})`));
+      }
+      await installCommandsForTarget(t, dir, ask, { skipHeader: covered.length > 1 });
+    }
   } finally {
     rl.close();
   }
 }
 
-async function installCommandsForTarget(target, dir, ask) {
-  console.log(c.dim(`\n  → ${target}`));
-  const commandsDir = target === 'claude-code'
-    ? join(dir, '.claude', 'commands')
-    : join(dir, '.opencode', 'commands');
-  const relDir = commandsDir.startsWith(dir + '/') ? commandsDir.slice(dir.length + 1) : commandsDir;
+async function installCommandsForTarget(target, dir, ask, { skipHeader = false } = {}) {
+  if (!skipHeader) console.log(c.dim(`\n  → ${target}`));
+  const relDir      = commandDestDir(target);
+  const commandsDir = join(dir, ...relDir.split('/'));
 
   if (!existsSync(commandsDir)) {
     const ok = await ask(`    ¿Crear ${relDir} e instalar slash commands?`);
@@ -1044,7 +1116,13 @@ async function cmdInitWithTools(flags) {
     console.log('  Ejemplo: vector-memory init --tools claude-code,cursor\n');
     process.exit(1);
   }
-  const tools = toolsRaw.split(',').map(t => t.trim()).filter(Boolean);
+  const tools = splitCsv(toolsRaw);
+  if (tools.length === 0) {
+    console.error(c.red('  --tools no puede estar vacío'));
+    console.log(c.dim(`  Herramientas disponibles: ${TOOL_TARGETS.join(', ')}\n`));
+    process.exit(1);
+  }
+  rejectUnknownTargets(tools, TOOL_TARGETS, 'init --tools');
   const yes      = !!flags.yes;
 
   console.log(c.bold('\nvector-memory init --tools\n'));
@@ -1094,7 +1172,7 @@ async function cmdInitWithTools(flags) {
   console.log(c.bold('\n  Configuración MCP:\n'));
   for (const tool of tools) {
     console.log(c.dim(`  ── ${tool} ──\n`));
-    await cmdMcpConfig({ target: tool });
+    await cmdMcpConfig({ target: tool, 'show-secrets': flags['show-secrets'] });
   }
 
   // 5. Próximos pasos
@@ -1280,36 +1358,35 @@ async function cmdManifest({ bankName, flags }) {
   await client.connect();
 
   try {
-    const [statsRes, typesRes, critRes, tagsRes, verifiedRes] = await Promise.all([
-      client.query(`
-        SELECT
-          COUNT(*)                                                              AS total,
-          SUM(CASE WHEN status = 'active'     THEN 1 ELSE 0 END)              AS active,
-          SUM(CASE WHEN status = 'deprecated' THEN 1 ELSE 0 END)              AS deprecated,
-          SUM(CASE WHEN criticality IN ('critical','high') THEN 1 ELSE 0 END) AS high_crit
-        FROM memories WHERE ${whereClause}
-      `, params),
-      client.query(`
-        SELECT memory_type, COUNT(*) AS n FROM memories
-        WHERE ${whereClause} AND status = 'active'
-        GROUP BY memory_type ORDER BY n DESC LIMIT 6
-      `, params),
-      client.query(`
-        SELECT public_id, LEFT(content, 100) AS snippet FROM memories
-        WHERE ${whereClause} AND criticality IN ('critical','high') AND status = 'active'
-        ORDER BY criticality DESC, created_at DESC LIMIT 5
-      `, params),
-      client.query(`
-        SELECT unnest(tags) AS tag, COUNT(*) AS n FROM memories
-        WHERE ${whereClause} AND status = 'active' AND tags IS NOT NULL
-        GROUP BY tag ORDER BY n DESC LIMIT 8
-      `, params),
-      client.query(`
-        SELECT public_id, last_verified_at FROM memories
-        WHERE ${whereClause} AND last_verified_at IS NOT NULL AND status = 'active'
-        ORDER BY last_verified_at DESC LIMIT 3
-      `, params),
-    ]);
+    const statsRes = await client.query(`
+      SELECT
+        COUNT(*)                                                              AS total,
+        COALESCE(SUM(CASE WHEN status = 'active'     THEN 1 ELSE 0 END), 0)              AS active,
+        COALESCE(SUM(CASE WHEN status = 'deprecated' THEN 1 ELSE 0 END), 0)              AS deprecated,
+        COALESCE(SUM(CASE WHEN criticality IN ('critical','high') THEN 1 ELSE 0 END), 0) AS high_crit
+      FROM memories WHERE ${whereClause}
+    `, params);
+    const typesRes = await client.query(`
+      SELECT memory_type, COUNT(*) AS n FROM memories
+      WHERE ${whereClause} AND status = 'active'
+      GROUP BY memory_type ORDER BY n DESC LIMIT 6
+    `, params);
+    const critRes = await client.query(`
+      SELECT public_id, LEFT(content, 100) AS snippet FROM memories
+      WHERE ${whereClause} AND criticality IN ('critical','high') AND status = 'active'
+      ORDER BY CASE criticality WHEN 'critical' THEN 0 WHEN 'high' THEN 1 ELSE 2 END,
+               created_at DESC LIMIT 5
+    `, params);
+    const tagsRes = await client.query(`
+      SELECT unnest(tags) AS tag, COUNT(*) AS n FROM memories
+      WHERE ${whereClause} AND status = 'active' AND tags IS NOT NULL
+      GROUP BY tag ORDER BY n DESC LIMIT 8
+    `, params);
+    const verifiedRes = await client.query(`
+      SELECT public_id, last_verified_at FROM memories
+      WHERE ${whereClause} AND last_verified_at IS NOT NULL AND status = 'active'
+      ORDER BY last_verified_at DESC LIMIT 3
+    `, params);
 
     const s = statsRes.rows[0];
     console.log(c.bold(`\n${bankName} — Manifest\n`));
@@ -1355,6 +1432,11 @@ async function cmdIterate(flags) {
   let effectiveRepo    = flags.repo     || null;
   const limit          = flags.limit ? parseInt(flags.limit, 10) : 20;
 
+  if (!Number.isInteger(limit) || limit < 1) {
+    console.error(c.red('  --limit debe ser un entero positivo'));
+    process.exit(1);
+  }
+
   // Auto-cargar desde config del proyecto, solo para los valores no provistos explícitamente
   const loaded = await loadConfig();
   if (loaded?.config) {
@@ -1376,9 +1458,9 @@ async function cmdIterate(flags) {
     const dbMod    = await import(pathToFileURL(join(__dirname, 'db.js')).href);
     pool           = dbMod.default;
     reflectResult  = await queryMod.reflectMemories({
-      project:  effectiveProject || undefined,
-      org:      effectiveOrg     || undefined,
-      repoName: effectiveRepo    || undefined,
+      project:      effectiveProject || undefined,
+      organization: effectiveOrg     || undefined,
+      repo_name:    effectiveRepo    || undefined,
       limit,
     });
   } catch (err) {
@@ -1491,7 +1573,8 @@ function printHelp(unknown) {
   console.log('    --full                Levantar todos los servicios Docker (api incluida)');
   console.log('    --port PORT           Puerto para worker (default: 3010)');
   console.log('    --host HOST           Host para worker (default: 127.0.0.1)');
-  console.log('    --open                Abrir UI en el browser al iniciar el worker\n');
+  console.log('    --open                Abrir UI en el browser al iniciar el worker');
+  console.log('    --show-secrets        Imprimir secretos reales en mcp-config (por defecto se omiten)\n');
 
   if (unknown) {
     console.error(c.red(`Comando desconocido: ${unknown}\n`));

@@ -15,7 +15,7 @@ Desde el directorio de tu proyecto (o desde cualquier lugar si tienes
 vector-memory mcp-config
 ```
 
-Salida:
+Salida segura por defecto (reemplaza los placeholders en tu config final):
 
 ```json
 {
@@ -24,8 +24,8 @@ Salida:
       "command": "vector-memory",
       "args": ["mcp"],
       "env": {
-        "VECTOR_MEMORY_DATABASE_URL": "postgresql://usuario:password@localhost:5432/vector_memory_db",
-        "OPENAI_API_KEY": "sk-..."
+        "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
       }
     }
   }
@@ -33,7 +33,8 @@ Salida:
 ```
 
 Copia ese bloque en la configuracion de tu agente segun las instrucciones de
-cada herramienta abajo.
+cada herramienta abajo. Si necesitas imprimir valores reales desde el entorno,
+usa `vector-memory mcp-config --show-secrets` solo en una terminal segura.
 
 ---
 
@@ -50,8 +51,8 @@ Agrega el servidor MCP al archivo de configuracion global de Claude Code:
       "command": "vector-memory",
       "args": ["mcp"],
       "env": {
-        "VECTOR_MEMORY_DATABASE_URL": "postgresql://usuario:password@localhost:5432/vector_memory_db",
-        "OPENAI_API_KEY": "sk-..."
+        "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
       }
     }
   }
@@ -93,8 +94,8 @@ Edita `~/.config/opencode/config.json` (o el config que uses):
         "command": "vector-memory",
         "args": ["mcp"],
         "env": {
-          "VECTOR_MEMORY_DATABASE_URL": "postgresql://usuario:password@localhost:5432/vector_memory_db",
-          "OPENAI_API_KEY": "sk-..."
+          "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
+          "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
         }
       }
     }
@@ -127,8 +128,8 @@ En Cursor, los servidores MCP se configuran en `~/.cursor/mcp.json`:
       "command": "vector-memory",
       "args": ["mcp"],
       "env": {
-        "VECTOR_MEMORY_DATABASE_URL": "postgresql://usuario:password@localhost:5432/vector_memory_db",
-        "OPENAI_API_KEY": "sk-..."
+        "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
       }
     }
   }

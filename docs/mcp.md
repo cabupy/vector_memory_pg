@@ -40,8 +40,8 @@ El servidor corre por stdio. Configuracion generica:
       "args": ["/ruta/a/vector_memory_pg/src/mcp-server.js"],
       "cwd": "/ruta/a/vector_memory_pg",
       "env": {
-        "VECTOR_MEMORY_DATABASE_URL": "postgresql://usuario:password@localhost:5433/vector_memory_db",
-        "OPENAI_API_KEY": "sk-..."
+        "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
       }
     }
   }

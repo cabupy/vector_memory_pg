@@ -198,6 +198,9 @@ OPENAI_API_KEY=sk-...
 vector-memory mcp-config --target claude-code
 ```
 
+Por seguridad, `mcp-config` omite secretos reales por defecto. Usa
+`--show-secrets` solo si necesitas imprimirlos en terminal.
+
 ```json
 {
   "mcpServers": {
@@ -205,8 +208,8 @@ vector-memory mcp-config --target claude-code
       "command": "vector-memory",
       "args": ["mcp"],
       "env": {
-        "VECTOR_MEMORY_DATABASE_URL": "postgres://vector:vector@localhost:5433/vector_memory",
-        "OPENAI_API_KEY": "sk-..."
+        "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
       }
     }
   }

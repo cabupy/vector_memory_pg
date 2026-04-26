@@ -5,6 +5,31 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.10.4] - 2026-04-26
+
+### Corregido
+
+- `mcp-config`: ahora omite `VECTOR_MEMORY_DATABASE_URL` y `OPENAI_API_KEY` reales
+  por defecto; `--show-secrets` permite imprimirlos explícitamente cuando sea necesario
+- `iterate`: `--org` y `--repo` ahora se pasan correctamente a `reflectMemories`
+  como `organization` y `repo_name`
+- `commands install --target all`: `opencode` y `openclaw` comparten `.opencode/commands`;
+  ahora se deduplican para evitar instalación repetida
+- `skills install`: los targets se validan antes de deduplicar archivos compartidos,
+  evitando que un target inválido tape targets válidos en la misma lista
+- `manifest`: elimina queries concurrentes sobre el mismo `pg.Client` para evitar
+  warnings de `pg` y futura incompatibilidad con `pg@9`
+- `bank show` y `manifest`: contadores vacíos ahora muestran `0` en lugar de `null`
+- `parseBankName`: trimea componentes y rechaza componentes vacíos
+- `iterate --limit`: valida enteros positivos y muestra error claro
+
+### Documentación
+
+- README y docs de MCP/integraciones actualizados para documentar placeholders seguros
+  y `--show-secrets`
+
+---
+
 ## [1.10.3] - 2026-04-26
 
 ### Corregido

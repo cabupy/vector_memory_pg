@@ -113,8 +113,8 @@ vector-memory mcp-config
 ```
 
 Copia el JSON resultante al bloque `mcpServers` de tu agente (Claude Code,
-OpenCode, Cursor, etc.). Ver [docs/integrations.md](./integrations.md) para
-ejemplos especificos por herramienta.
+OpenCode, Cursor, etc.) y reemplaza los placeholders de secretos. Ver
+[docs/integrations.md](./integrations.md) para ejemplos especificos por herramienta.
 
 ---
 

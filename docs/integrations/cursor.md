@@ -40,7 +40,8 @@ En Cursor, abre **Settings → MCP** y agrega el servidor:
     "command": "npx",
     "args": ["-y", "vector-memory-pg", "mcp"],
     "env": {
-      "VECTOR_MEMORY_DATABASE_URL": "postgresql://postgres:postgres@localhost:5435/vector_memory_db"
+      "VECTOR_MEMORY_DATABASE_URL": "YOUR_VECTOR_MEMORY_DATABASE_URL",
+      "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY"
     }
   }
 }
