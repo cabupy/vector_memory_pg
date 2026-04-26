@@ -9,12 +9,12 @@ vector-memory init --tools openclaw
 Esto ejecuta en un solo paso:
 1. Crea `.vector-memory.json` con la config del repo
 2. Escribe las instrucciones de uso en `AGENTS.md`
-3. Instala 5 slash commands en `.opencode/commands/` (compartidos con OpenCode)
-4. Muestra el snippet de config MCP
+3. Instala 5 comandos slash en `.opencode/commands/` (compartidos con OpenCode)
+4. Muestra el snippet de configuración MCP
 
 ## Instalación manual
 
-### Skills (instrucciones de uso)
+### Instrucciones De Uso (skills)
 
 ```bash
 vector-memory skills install --target openclaw
@@ -22,15 +22,15 @@ vector-memory skills install --target openclaw
 
 Escribe un bloque marcado con `<!-- vector-memory-skill -->` en `AGENTS.md`.
 
-### Slash commands
+### Comandos Slash
 
 ```bash
 vector-memory commands install --target openclaw
 ```
 
-OpenClaw comparte el directorio de commands con OpenCode (`.opencode/commands/`).
+OpenClaw comparte el directorio de comandos con OpenCode (`.opencode/commands/`).
 
-### Config MCP
+### Configuración MCP
 
 ```bash
 vector-memory mcp-config --target openclaw
@@ -39,5 +39,5 @@ vector-memory mcp-config --target openclaw
 ## Notas
 
 - OpenClaw usa `AGENTS.md` como archivo de instrucciones, igual que Codex y OpenCode.
-- El directorio de commands es `.opencode/commands/` (compatibilidad con OpenCode).
+- El directorio de comandos es `.opencode/commands/` (compatibilidad con OpenCode).
 - Si ya instalaste para `opencode`, la instalación para `openclaw` es idempotente.

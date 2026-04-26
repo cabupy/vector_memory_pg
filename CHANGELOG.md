@@ -5,6 +5,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [1.10.7] - 2026-04-26
+
+### Documentación
+
+- `ROADMAP.md` queda como hoja de ruta principal en español
+- Se agrega `ROADMAP.en.md` como versión en inglés
+- Se normaliza documentación principal para mantener español por defecto
+- README en inglés apunta al roadmap en inglés
+
+---
+
 ## [1.10.6] - 2026-04-26
 
 ### Documentación

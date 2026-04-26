@@ -92,7 +92,7 @@ const recientes = await recentMemories(5, 'mi-proyecto')
 
 ---
 
-## Stats
+## Estadísticas
 
 ```ts
 async function memoryStats() {

@@ -10,7 +10,7 @@ Linux y WSL2, y evita instalar `pgvector` manualmente en cada sistema.
 
 | Dependencia | Uso | Version minima |
 |---|---|---|
-| Node.js | CLI, MCP server, worker HTTP/UI | 22+ |
+| Node.js | CLI, servidor MCP, worker HTTP/UI | 22+ |
 | Docker + Compose | PostgreSQL + pgvector portable | Docker con `docker compose` |
 | OpenAI API key | embeddings `text-embedding-3-small` | requerida |
 
@@ -112,7 +112,7 @@ Esto activa el profile `full` del `docker-compose.yml` y expone la API en
 
 ---
 
-## Desarrollo desde source
+## Desarrollo desde código fuente
 
 Usa este flujo si vas a modificar el repo o contribuir cambios.
 
@@ -136,7 +136,7 @@ Levanta PostgreSQL con el compose del repo:
 npm run up
 ```
 
-Aplica el schema desde source:
+Aplica el schema desde código fuente:
 
 ```bash
 npm run setup
@@ -220,7 +220,7 @@ vector-memory migrate
 | `MEMORY_ORGANIZATION` | Organizacion por defecto al ingestar | — |
 | `MEMORY_PROJECT` | Proyecto por defecto al ingestar | — |
 | `MEMORY_REPO_NAME` | Repo por defecto al ingestar | — |
-| `MEMORY_TYPE` | Tipo de memoria por defecto al ingestar | source type |
+| `MEMORY_TYPE` | Tipo de memoria por defecto al ingestar | tipo de fuente |
 | `MEMORY_CRITICALITY` | Criticidad por defecto al ingestar | `normal` |
 | `MEMORY_TAGS` | Tags por defecto al ingestar, separados por coma | — |
 

@@ -237,7 +237,7 @@ only if you need to print them in the terminal.
 | [MCP](./docs/mcp.md) | Per-agent configuration, available tools |
 | [Security](./docs/security.md) | Denylist, secret detector, dry-run, log |
 | [Architecture](./docs/architecture.md) | Data model, ranking, indexes, structure |
-| [Roadmap](./ROADMAP.md) | Next steps and exploration tracks |
+| [Roadmap](./ROADMAP.en.md) | Next steps and exploration tracks |
 | [AGENTS.md](./AGENTS.md) | Reference system prompt for integrating agents |
 | [Integrations](./docs/integrations/) | Claude Code, Cursor, Codex, OpenCode, OpenClaw |
 | [Concepts](./docs/concepts/) | Memory banks, reflect, verification, deprecation |

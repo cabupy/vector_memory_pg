@@ -50,11 +50,11 @@ Deberias ver todos los checks en verde. Si falla la conexion, revisa el
 vector-memory worker --open
 ```
 
-Abre `http://localhost:3010/ui` en el browser automaticamente.
+Abre `http://localhost:3010/ui` en el navegador automaticamente.
 
 ---
 
-## Opcion B — Desarrollo desde source
+## Opcion B — Desarrollo desde código fuente
 
 ```bash
 git clone https://github.com/cabupy/vector_memory_pg.git
@@ -123,7 +123,7 @@ vector-memory mcp-config
 ```
 
 Copia el JSON resultante al bloque `mcpServers` de tu agente (Claude Code,
-OpenCode, Cursor, etc.) y reemplaza los placeholders de secretos. Ver
+OpenCode, Cursor, etc.) y reemplaza los marcadores de secretos. Ver
 [docs/integrations.md](./integrations.md) para ejemplos especificos por herramienta.
 
 ---

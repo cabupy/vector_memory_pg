@@ -39,7 +39,7 @@ Escanea el contenido del archivo buscando patrones conocidos de secretos:
 
 ## Modos de operacion
 
-Configurar via variable de entorno o flag del CLI/API:
+Configurar vía variable de entorno o flag del CLI/API:
 
 ### block (default)
 
@@ -105,7 +105,7 @@ curl -X POST http://localhost:3010/ingest \
 
 Cada evento de bloqueo o redaccion se registra en la tabla `sanitization_log`.
 
-Consultar via HTTP API:
+Consultar vía HTTP API:
 
 ```bash
 curl "http://localhost:3010/sanitization-log?limit=20"

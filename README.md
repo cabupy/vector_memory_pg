@@ -3,7 +3,7 @@
 ![vector-memory-pg](https://raw.githubusercontent.com/cabupy/vector_memory_pg/main/assets/images/banner-3.png)
 
 **Memoria técnica institucional para agentes IA** —
-PostgreSQL + pgvector + OpenAI embeddings + HTTP API + MCP + UI web.
+PostgreSQL + pgvector + embeddings de OpenAI + HTTP API + MCP + UI web.
 
 [Instalación](./docs/installation.md) •
 [CLI](./docs/cli.md) •
@@ -13,7 +13,7 @@ PostgreSQL + pgvector + OpenAI embeddings + HTTP API + MCP + UI web.
 [Arquitectura](./docs/architecture.md) •
 [Contribuir](./CONTRIBUTING.md)
 
-English version: [README.en.md](./README.en.md)
+Versión en inglés: [README.en.md](./README.en.md)
 
 ---
 
@@ -33,10 +33,10 @@ de entorno de otros proyectos.
 npm install -g vector-memory-pg
 vector-memory up              # PostgreSQL 17 + pgvector en Docker (:5433)
 vector-memory quickstart      # configura ~/.vector-memory.env y aplica schema
-vector-memory worker --open   # levanta el server y abre la UI en el browser
+vector-memory worker --open   # levanta el servidor y abre la UI en el navegador
 ```
 
-## Bring Your Own Coding Agent
+## Usa Tu Propio Agente De Código
 
 Funciona con cualquier agente IA que soporte MCP. Un comando configura todo:
 
@@ -45,10 +45,10 @@ vector-memory init --tools claude-code    # o cursor, codex, opencode, openclaw
 ```
 
 Eso ejecuta en un solo paso: crea `.vector-memory.json`, instala las instrucciones
-de uso en el archivo de config del agente, instala slash commands (donde aplica)
-y muestra el snippet de config MCP.
+de uso en el archivo de config del agente, instala comandos slash (donde aplica)
+y muestra el snippet de configuración MCP.
 
-| Agente | Instrucciones | Slash commands | Config MCP |
+| Agente | Instrucciones | Comandos slash | Config MCP |
 |---|---|---|---|
 | Claude Code | `CLAUDE.md` | `.claude/commands/vm-*.md` | `~/.claude/mcp.json` |
 | OpenCode | `AGENTS.md` | `.opencode/commands/vm-*.md` | `.opencode/config.json` |
@@ -56,13 +56,13 @@ y muestra el snippet de config MCP.
 | Codex | `AGENTS.md` | — | `~/.codex/config.yaml` |
 | OpenClaw | `AGENTS.md` | `.opencode/commands/vm-*.md` | según config |
 
-Slash commands disponibles: `/vm-context`, `/vm-search`, `/vm-save`, `/vm-reflect`, `/vm-iterate`
+Comandos slash disponibles: `/vm-context`, `/vm-search`, `/vm-save`, `/vm-reflect`, `/vm-iterate`
 
 ```bash
 # Instalar solo las instrucciones de uso
 vector-memory skills install --target opencode
 
-# Instalar solo los slash commands
+# Instalar solo los comandos slash
 vector-memory commands install --target claude-code
 
 # Combinar múltiples agentes
@@ -78,9 +78,9 @@ Ver guías detalladas en [docs/integrations/](./docs/integrations/).
                 → decisiones, bugs, patrones, restricciones
 
 2. Buscar       search_memories / vector-memory search
-                → híbrida: semántica (70%) + full-text (20%)
+                → híbrida: semántica (70%) + texto completo (20%)
 
-3. Timeline     memory_timeline / GET /timeline / UI Timeline
+3. Cronología   memory_timeline / GET /timeline / UI Timeline
                 → historial cronológico agrupado por día
 
 4. Reflexionar  reflect_memories / POST /reflect / UI Reflect
@@ -106,7 +106,7 @@ Interfaz web local accesible en `http://localhost:3010/ui`:
   botones para deprecar o guardar sugerencias directamente
 
 ```bash
-vector-memory worker --open   # inicia server y abre el browser automáticamente
+vector-memory worker --open   # inicia el servidor y abre el navegador automáticamente
 ```
 
 ## Arquitectura
@@ -242,7 +242,7 @@ Por seguridad, `mcp-config` omite secretos reales por defecto. Usa
 | [AGENTS.md](./AGENTS.md) | System prompt de referencia para integrar agentes |
 | [Integraciones](./docs/integrations/) | Claude Code, Cursor, Codex, OpenCode, OpenClaw |
 | [Conceptos](./docs/concepts/) | Memory banks, reflect, verificación, deprecación |
-| [Cookbook](./docs/cookbook/) | Decisiones de arquitectura, bugs, seguridad, sesiones |
+| [Recetario](./docs/cookbook/) | Decisiones de arquitectura, bugs, seguridad, sesiones |
 
 ## Contribuciones
 

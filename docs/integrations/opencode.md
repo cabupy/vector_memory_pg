@@ -9,12 +9,12 @@ vector-memory init --tools opencode
 Esto ejecuta en un solo paso:
 1. Crea `.vector-memory.json` con la config del repo
 2. Escribe las instrucciones de uso en `AGENTS.md`
-3. Instala 5 slash commands en `.opencode/commands/`
-4. Muestra el snippet de config MCP
+3. Instala 5 comandos slash en `.opencode/commands/`
+4. Muestra el snippet de configuración MCP
 
 ## Instalación manual
 
-### Skills (instrucciones de uso)
+### Instrucciones De Uso (skills)
 
 ```bash
 vector-memory skills install --target opencode
@@ -22,7 +22,7 @@ vector-memory skills install --target opencode
 
 Escribe un bloque marcado con `<!-- vector-memory-skill -->` en `AGENTS.md`.
 
-### Slash commands
+### Comandos Slash
 
 ```bash
 vector-memory commands install --target opencode
@@ -38,7 +38,7 @@ Crea los archivos en `.opencode/commands/`:
 | `/vm-reflect` | Ejecuta reflect y muestra hallazgos |
 | `/vm-iterate` | Itera sobre memorias y sugiere mejoras |
 
-### Config MCP
+### Configuración MCP
 
 ```bash
 vector-memory mcp-config --target opencode
@@ -69,5 +69,5 @@ O a nivel global en `~/.config/opencode/config.json`.
 
 ## Notas
 
-- `AGENTS.md` en la raíz del repo es leído automáticamente por OpenCode como system prompt.
-- Los slash commands permiten invocar flujos de memoria directamente desde el chat.
+- `AGENTS.md` en la raíz del repo es leído automáticamente por OpenCode como prompt de sistema.
+- Los comandos slash permiten invocar flujos de memoria directamente desde el chat.

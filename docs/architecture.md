@@ -91,7 +91,7 @@ critical     nunca ignorar, bloquea cambios sin revision
 La busqueda semantica calcula un `hybrid_score` combinando:
 
 ```text
-0.70 * similitud vectorial (coseno via pgvector)
+0.70 * similitud vectorial (coseno vía pgvector)
 0.20 * ts_rank_cd (full-text search de PostgreSQL)
 + boost por status:      active +0.08 | deprecated -0.25 | superseded -0.35 | archived -0.45
 + boost por criticality: critical +0.12 | high +0.08 | normal +0.03 | low 0
@@ -152,7 +152,7 @@ src/
   mcp-server.js   Herramientas MCP (lectura y escritura)
   server.js       HTTP API Express
   ingest-one.js   Ingesta incremental de un archivo
-  embeddings.js   OpenAI text-embedding-3-small via fetch
+  embeddings.js   OpenAI text-embedding-3-small vía fetch
   chunker.js      Chunking de JSONL y Markdown
   security.js     Denylist, detector de secretos, redaccion
   setup-db.js     Aplica schema.sql
@@ -172,5 +172,6 @@ docs/
   security.md      Denylist, detector y modos de secretos
   archive/         Notas historicas de planificación
 
-ROADMAP.md         Roadmap público resumido
+ROADMAP.md         Roadmap público resumido en español
+ROADMAP.en.md      Roadmap público resumido en inglés
 ```

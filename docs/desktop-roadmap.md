@@ -1,4 +1,4 @@
-# Desktop Roadmap
+# Roadmap De Escritorio
 
 Ideas y funcionalidades candidatas para una futura versión desktop/GUI de vector-memory.
 Este documento es especulativo — nada aquí está comprometido ni tiene fecha.
@@ -20,42 +20,42 @@ pero una app desktop nativa podría ofrecer:
 
 ## Ideas en exploración
 
-### 1. Tray app (barra de menú)
+### 1. App En Barra De Menú
 
 Una app mínima en la barra de menú que:
 - Muestra si el worker está corriendo.
-- Permite búsqueda rápida sin abrir el browser.
+- Permite búsqueda rápida sin abrir el navegador.
 - Botón para abrir la UI completa.
 
 **Tecnología candidata**: Tauri (Rust + WebView), Electron, o script AppleScript/PowerShell
-para wrappear el proceso Node existente.
+para envolver el proceso Node existente.
 
 ### 2. Búsqueda global
 
 Atajo de teclado configurable (ej. `Cmd+Shift+M`) que abre un panel de búsqueda flotante,
 similar a cómo funciona Raycast o Alfred.
 
-### 3. Auto-ingest de archivos
+### 3. Auto-Ingesta De Archivos
 
 Watcher de directorios configurados que ingesta automáticamente cuando detecta cambios,
 similar a como funcionan los indexadores de búsqueda del sistema.
 
-### 4. Sync entre máquinas
+### 4. Sincronización Entre Máquinas
 
 Dado que la DB es PostgreSQL, el sync natural sería apuntar a una instancia remota compartida.
 Una UI para configurar el `DATABASE_URL` sin editar archivos sería útil.
 
 ### 5. Exportar / importar
 
-- Export: volcar todas las memorias a JSONL o Markdown.
-- Import: restaurar desde un export previo o migrar desde otra instancia.
+- Exportar: volcar todas las memorias a JSONL o Markdown.
+- Importar: restaurar desde un export previo o migrar desde otra instancia.
 
 ---
 
 ## Restricciones conocidas
 
 - El núcleo debe seguir siendo CLI + MCP para compatibilidad con agentes IA.
-- La desktop app sería una capa encima, no un reemplazo.
+- La app de escritorio sería una capa encima, no un reemplazo.
 - Dependencias nuevas deben ser opcionales (no aumentar el tamaño del paquete npm base).
 
 ---

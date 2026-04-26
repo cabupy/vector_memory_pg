@@ -101,7 +101,7 @@ Levanta el servidor HTTP + MCP en `http://localhost:3010`.
 vector-memory worker
 ```
 
-Abre la UI web en el browser al iniciar:
+Abre la UI web en el navegador al iniciar:
 
 ```bash
 vector-memory worker --open
@@ -110,7 +110,7 @@ vector-memory worker --open
 El servidor expone:
 - HTTP API en `http://localhost:3010`
 - UI web en `http://localhost:3010/ui`
-- MCP sobre stdio (via `mcp-config`)
+- MCP sobre stdio (vía `mcp-config`)
 
 ---
 
@@ -269,7 +269,7 @@ vector-memory search "seguridad" --status active --criticality high
 ## init
 
 Crea `.vector-memory.json` en el directorio actual. Sin flags, equivale a `init-project`.
-Con `--tools`, configura además las instrucciones de uso y slash commands para el agente.
+Con `--tools`, configura además las instrucciones de uso y comandos slash para el agente.
 
 ```bash
 vector-memory init                          # igual que init-project
@@ -297,13 +297,13 @@ vector-memory skills install --target cursor
 | `opencode` / `codex` / `openclaw` | `AGENTS.md` |
 | `cursor` | `.cursor/rules/vector-memory.mdc` |
 
-La operación es idempotente: usa el marker `<!-- vector-memory-skill -->` para evitar duplicados.
+La operación es idempotente: usa el marcador `<!-- vector-memory-skill -->` para evitar duplicados.
 
 ---
 
 ## commands install
 
-Instala 5 slash commands para invocar flujos de memoria desde el chat del agente.
+Instala 5 comandos slash para invocar flujos de memoria desde el chat del agente.
 
 ```bash
 vector-memory commands install --target claude-code
@@ -386,7 +386,7 @@ vector-memory init --tools claude-code   # detecta repo/org, instala skills+comm
 vector-memory doctor                     # verifica todo
 vector-memory ingest                     # ingesta README.md y docs/
 vector-memory search "auth"             # busca memorias relevantes
-vector-memory worker --open             # levanta server y abre UI en browser
+vector-memory worker --open             # levanta servidor y abre UI en navegador
 ```
 
 ---

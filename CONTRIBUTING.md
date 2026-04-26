@@ -31,7 +31,7 @@ Incluye:
 - Logs relevantes.
 - Resultado esperado y resultado actual.
 
-## Proponer Features
+## Proponer Funcionalidades
 
 Abre un issue antes de escribir codigo si la feature cambia schema, API, MCP tools, ranking, seguridad o comportamiento de ingesta.
 
@@ -97,7 +97,7 @@ No subas ni pegues:
 - credenciales de proveedores
 - dumps de sesiones con secretos
 
-Si encuentras un problema de seguridad, abre un issue sin incluir secretos reales o contacta al maintainer via GitHub: [@cabupy](https://github.com/cabupy).
+Si encuentras un problema de seguridad, abre un issue sin incluir secretos reales o contacta al maintainer vía GitHub: [@cabupy](https://github.com/cabupy).
 
 ## Commits
 

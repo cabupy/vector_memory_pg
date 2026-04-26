@@ -1,4 +1,4 @@
-# MCP Server
+# Servidor MCP
 
 `vector_memory_pg` incluye un servidor MCP (Model Context Protocol) que expone herramientas de lectura y escritura de memoria para cualquier agente compatible.
 

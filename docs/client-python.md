@@ -128,7 +128,7 @@ recientes = recent_memories(5, project="mi-proyecto")
 
 ---
 
-## Stats
+## Estadísticas
 
 ```python
 def memory_stats() -> dict:

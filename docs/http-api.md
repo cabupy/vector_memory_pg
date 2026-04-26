@@ -6,7 +6,7 @@ Arrancar:
 
 ```bash
 vector-memory worker
-# o para abrir la UI en browser al iniciar:
+# o para abrir la UI en el navegador al iniciar:
 vector-memory worker --open
 ```
 
@@ -14,7 +14,7 @@ vector-memory worker --open
 
 ## GET /ui — Interfaz web local
 
-Abre la UI web en el browser para explorar memorias sin necesidad de curl.
+Abre la UI web en el navegador para explorar memorias sin necesidad de curl.
 
 ```
 http://localhost:3010/ui
@@ -187,7 +187,7 @@ curl -X POST http://localhost:3010/reflect \
   }'
 ```
 
-### Body
+### Cuerpo
 
 | Campo | Tipo | Descripcion |
 |---|---|---|
@@ -243,7 +243,7 @@ curl -X POST http://localhost:3010/memories \
   -d '{ "content": "El deploy usa GitHub Actions con aprobacion manual en prod.", "auto_classify": true }'
 ```
 
-### Body
+### Cuerpo
 
 | Campo | Tipo | Descripcion |
 |---|---|---|
@@ -275,7 +275,7 @@ curl -X POST http://localhost:3010/memories/VM-000042/deprecate \
   -d '{ "reason": "Reemplazada por decision del 2026-04-25", "author": "agent" }'
 ```
 
-### Body
+### Cuerpo
 
 | Campo | Tipo | Descripcion |
 |---|---|---|
@@ -307,7 +307,7 @@ curl -X POST http://localhost:3010/ingest \
   }'
 ```
 
-### Body
+### Cuerpo
 
 | Campo | Tipo | Descripcion |
 |---|---|---|
@@ -364,7 +364,7 @@ Acciones posibles:
 
 ---
 
-## Session events
+## Eventos De Sesión
 
 Endpoints para integrar agentes con el ciclo de vida de la sesion.
 

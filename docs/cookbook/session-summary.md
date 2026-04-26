@@ -63,7 +63,7 @@ Pendiente:
 vector-memory search "sesión" --type session_summary
 ```
 
-O via MCP:
+O vía MCP:
 ```javascript
 recent_memories({ limit: 5, memory_type: "session_summary" })
 ```

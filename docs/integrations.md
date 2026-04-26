@@ -15,7 +15,7 @@ Desde el directorio de tu proyecto (o desde cualquier lugar si tienes
 vector-memory mcp-config
 ```
 
-Salida segura por defecto (reemplaza los placeholders en tu config final):
+Salida segura por defecto (reemplaza los marcadores en tu config final):
 
 ```json
 {

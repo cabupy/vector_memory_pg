@@ -1,6 +1,6 @@
 # vector-memory — Instrucciones para agentes IA
 
-Este documento es el system prompt de referencia para agentes que usan
+Este documento es el prompt de sistema de referencia para agentes que usan
 `vector-memory` como memoria técnica persistente.
 
 Cópialo en tu `AGENTS.md`, `CLAUDE.md`, `.cursorrules` o en el bloque
@@ -123,7 +123,7 @@ Todas las herramientas de búsqueda aceptan filtros opcionales:
 
 ---
 
-## Event endpoints (HTTP worker)
+## Endpoints de eventos (worker HTTP)
 
 Si el servidor HTTP está corriendo (`vector-memory worker`), el agente puede
 integrarse con el ciclo de vida de la sesión vía HTTP:
@@ -133,7 +133,7 @@ integrarse con el ciclo de vida de la sesión vía HTTP:
 POST http://127.0.0.1:3010/events/session-start
 { "session_id": "abc123", "project": "mi-proyecto" }
 
-# Observación post tool-use
+# Observación posterior al uso de herramienta
 POST http://127.0.0.1:3010/events/post-tool-use
 { "session_id": "abc123", "tool_name": "Bash", "observation": "...", "auto_save": true }
 

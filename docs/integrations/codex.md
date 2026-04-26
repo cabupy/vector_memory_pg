@@ -9,20 +9,20 @@ vector-memory init --tools codex
 Esto ejecuta en un solo paso:
 1. Crea `.vector-memory.json` con la config del repo
 2. Escribe las instrucciones de uso en `AGENTS.md`
-3. Muestra el snippet de config MCP
+3. Muestra el snippet de configuración MCP
 
 ## Instalación manual
 
-### Skills (instrucciones de uso)
+### Instrucciones De Uso (skills)
 
 ```bash
 vector-memory skills install --target codex
 ```
 
 Escribe un bloque marcado con `<!-- vector-memory-skill -->` en `AGENTS.md`.
-Si el archivo ya tiene el marker, la operación es idempotente.
+Si el archivo ya tiene el marcador, la operación es idempotente.
 
-### Config MCP
+### Configuración MCP
 
 ```bash
 vector-memory mcp-config --target codex

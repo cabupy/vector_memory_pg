@@ -1,6 +1,6 @@
-# Memory Banks
+# Bancos De Memoria
 
-Un **memory bank** es una colección nombrada de memorias asociada a un proyecto, equipo o dominio específico.
+Un **banco de memoria** es una colección nombrada de memorias asociada a un proyecto, equipo o dominio específico.
 Permite organizar el conocimiento en espacios separados con metadata propia.
 
 ## Comandos
