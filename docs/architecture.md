@@ -170,5 +170,7 @@ docs/
   installation.md  Instalacion y configuracion
   mcp.md           Configuracion MCP y herramientas
   security.md      Denylist, detector y modos de secretos
-  mejoras.md       Roadmap
+  archive/         Notas historicas de planificación
+
+ROADMAP.md         Roadmap público resumido
 ```

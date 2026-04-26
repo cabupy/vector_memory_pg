@@ -9,7 +9,7 @@ Este proyecto acepta contribuciones de bugs, features, documentacion, seguridad,
 ## Antes De Empezar
 
 - Revisa el [README.md](./README.md).
-- Revisa el roadmap en [mejoras.md](./mejoras.md).
+- Revisa el roadmap público en [ROADMAP.md](./ROADMAP.md).
 - Abre un issue antes de implementar cambios grandes.
 - No incluyas secretos, `.env`, llaves privadas ni credenciales en issues, commits o PRs.
 
@@ -40,11 +40,12 @@ Buenas areas para contribuir:
 - detector de secretos por contenido
 - redaccion automatica
 - dry-run de ingesta
-- CLI/doctor/init-project
+- CLI/doctor/init-project/onboarding de agentes
 - tests automatizados
 - mejoras de ranking
 - administracion de memorias
 - deteccion de duplicados o contradicciones
+- ejemplos/cookbook y demos de adopcion
 
 ## Pull Requests
 
@@ -70,13 +71,13 @@ npm run server
 npm run mcp
 ```
 
-6. Actualiza README, CONTRIBUTING o `mejoras.md` si cambia comportamiento publico.
+6. Actualiza README, CONTRIBUTING, ROADMAP o docs si cambia comportamiento publico.
 7. Abre el PR contra `main` con una descripcion clara.
 
 ## Estilo De Codigo
 
 - ES Modules (`import/export`).
-- Node.js 18+.
+- Node.js 22+.
 - Mantener dependencias al minimo.
 - No agregar dependencias nuevas sin explicar el motivo en el issue/PR.
 - Preferir cambios pequenos y faciles de revisar.

@@ -238,6 +238,7 @@ Por seguridad, `mcp-config` omite secretos reales por defecto. Usa
 | [MCP](./docs/mcp.md) | Configuración por agente, herramientas disponibles |
 | [Seguridad](./docs/security.md) | Denylist, detector de secretos, dry-run, log |
 | [Arquitectura](./docs/architecture.md) | Modelo de datos, ranking, índices, estructura |
+| [Roadmap](./ROADMAP.md) | Próximos pasos y líneas de exploración |
 | [AGENTS.md](./AGENTS.md) | System prompt de referencia para integrar agentes |
 | [Integraciones](./docs/integrations/) | Claude Code, Cursor, Codex, OpenCode, OpenClaw |
 | [Conceptos](./docs/concepts/) | Memory banks, reflect, verificación, deprecación |

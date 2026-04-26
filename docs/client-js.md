@@ -198,5 +198,4 @@ await mem.save(resumenDeLaSesion, { memory_type: 'session_summary' })
 - El servidor debe estar corriendo: `vector-memory worker`
 - No hay autenticacion por defecto — el servidor escucha solo en `localhost`
 - Para produccion o acceso desde red, considera un proxy con autenticacion
-- `fetch` nativo esta disponible en Node.js 18+; para versiones anteriores
-  usa `node-fetch` o `undici`
+- El proyecto requiere Node.js 22+; `fetch` nativo ya esta disponible
